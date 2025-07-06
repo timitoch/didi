@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>German Words Trainer 3.0</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --border-color: rgba(255, 255, 255, 0.2);
+            --shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 25px 50px rgba(0, 0, 0, 0.15);
+            
+            /* Цвета для родов */
+            --masculine-color: #4A90E2;    /* Синий для der */
+            --feminine-color: #E85D9A;     /* Розовый для die */
+            --neuter-color: #F5A623;       /* Желтый для das */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            padding: 40px;
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            padding: 40px;
+            border-radius: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+            z-index: 1;
+        }
+
+        .upload-area:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .upload-area p {
+            margin: 0;
+            color: var(--text-dark);
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        input[type="file"] {
+            display: block;
+            margin: 20px auto 0;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary-gradient);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-item {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        .card-container {
+            min-height: 300px;
+            perspective: 1000px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .card-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            box-sizing: border-box;
+            border-radius: 20px;
+            background: var(--card-bg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background: var(--card-bg);
+            color: var(--text-dark);
+        }
+
+        .german-word {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+        }
+
+        /* Классы для окраски существительных по родам */
+        .german-word.masculine {
+            color: var(--masculine-color);
+        }
+
+        .german-word.feminine {
+            color: var(--feminine-color);
+        }
+
+        .german-word.neuter {
+            color: var(--neuter-color);
+        }
+
+        .example {
+            font-size: 20px;
+            color: var(--text-light);
+            margin-top: 15px;
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        .translation {
+            font-size: 36px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .rating-preview {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--text-dark);
+            position: relative;
+            z-index: 1;
+            display: none;
+        }
+
+        .mastered-count {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+
+        .rating-buttons {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .rating-btn {
+            padding: 15px 10px;
+            border: none;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rating-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .rating-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .rating-btn-1 { background: #E32437; }
+        .rating-btn-2 { background: #F2861B; }
+        .rating-btn-3 { background: #F5C918; color: #333; }
+        .rating-btn-4 { background: #D6E324; color: #333; }
+        .rating-btn-5 { background: #9AE324; color: #333; }
+        .rating-btn-6 { background: #2BBF17; }
+
+        .hidden {
+            display: none;
+        }
+
+        .session-end-message {
+            margin-top: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .session-end-message h2 {
+            font-size: 28px;
+            background: var(--success-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+        }
+
+        .restart-btn {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 15px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .flip-hint {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 12px;
+            color: var(--text-light);
+            opacity: 0.7;
+            display: none;
+        }
+
+        /* Легенда для цветов */
+        .gender-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .gender-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .gender-color-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .gender-color-box.masculine { background: var(--masculine-color); }
+        .gender-color-box.feminine { background: var(--feminine-color); }
+        .gender-color-box.neuter { background: var(--neuter-color); }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .german-word {
+                font-size: 32px;
+            }
+
+            .translation {
+                font-size: 28px;
+            }
+
+            .rating-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .gender-legend {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🇩🇪 German Words Trainer</h1>
+
+    <div id="upload-container">
+        <label for="file-input" class="upload-area">
+            <p>📁 Загрузите Excel (.xlsx) файл со словами</p>
+            <small style="color: var(--text-light); margin-top: 10px; display: block;">
+                Формат: ID | Немецкое слово | Перевод | Пример
+            </small>
+        </label>
+        <input type="file" id="file-input" accept=".xlsx, .xls">
+        
+        <div class="gender-legend">
+            <div class="gender-legend-item">
+                <div class="gender-color-box masculine"></div>
+                <span>der (мужской)</span>
+            </div>
+            <div class="gender-legend-item">
+                <div class="gender-color-box feminine"></div>
+                <span>die (женский)</span>
+            </div>
+            <div class="gender-legend-item">
+                <div class="gender-color-box neuter"></div>
+                <span>das (средний)</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="trainer-container" class="hidden">
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="new-count">0</div>
+                <div class="stat-label">Новых слов сегодня</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="due-count">0</div>
+                <div class="stat-label">К повторению</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="done-count">0</div>
+                <div class="stat-label">Изучено сегодня</div>
+            </div>
+        </div>
+
+        <div class="mastered-count" id="mastered-count">
+            Освоено: <span id="mastered-number">0</span>
+        </div>
+
+        <div id="card-container" class="card-container"></div>
+        
+        <div class="rating-buttons" id="rating-container">
+            <button class="rating-btn rating-btn-1" data-rating="1">❌ Не помню<br><small>5 минут</small></button>
+            <button class="rating-btn rating-btn-2" data-rating="2">⚠️ С трудом<br><small>1 день</small></button>
+            <button class="rating-btn rating-btn-3" data-rating="3">😐 Частично<br><small>4 дня</small></button>
+            <button class="rating-btn rating-btn-4" data-rating="4">🙂 Почти<br><small>7 дней</small></button>
+            <button class="rating-btn rating-btn-5" data-rating="5">✅ Помню<br><small>12 дней</small></button>
+            <button class="rating-btn rating-btn-6" data-rating="6">⭐ Отлично<br><small>21 день</small></button>
+        </div>
+
+        <div id="session-end" class="hidden session-end-message">
+            <h2>🎉 Сессия завершена!</h2>
+            <p>Вы отлично поработали. Зайдите позже, чтобы повторить слова.</p>
+            <button id="restart-btn" class="restart-btn">Начать заново</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const uploadContainer = document.getElementById('upload-container');
+const fileInput = document.getElementById('file-input');
+const trainerContainer = document.getElementById('trainer-container');
+const cardContainer = document.getElementById('card-container');
+const ratingContainer = document.getElementById('rating-container');
+const sessionEndElement = document.getElementById('session-end');
+const restartBtn = document.getElementById('restart-btn');
+const newCountEl = document.getElementById('new-count');
+const dueCountEl = document.getElementById('due-count');
+const doneCountEl = document.getElementById('done-count');
+const masteredNumberEl = document.getElementById('mastered-number');
+
+let fullDeck = [];
+let sessionQueue = [];
+let currentCard = null;
+let isCardFlipped = false;
+const DECK_KEY = 'german_words_deck_v3';
+const DAILY_STATS_KEY = 'daily_stats_v3';
+const MASTERED_KEY = 'mastered_words_v3';
+
+fileInput.addEventListener('change', handleFileUpload);
+ratingContainer.addEventListener('click', handleRating);
+restartBtn.addEventListener('click', () => {
+    localStorage.removeItem(DECK_KEY);
+    localStorage.removeItem(DAILY_STATS_KEY);
+    location.reload();
+});
+window.addEventListener('load', loadProgress);
+
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        parseAndInitDeck(json);
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function parseAndInitDeck(data) {
+    fullDeck = data
+        .slice(1)
+        .filter(row => row && row[1] && row[2])
+        .map(row => ({
+            id: row[0],
+            german: row[1] || '',
+            translation: row[2] || '',
+            example: row[3] || '',
+            interval: 0,
+            easeFactor: 2.5,
+            nextReviewDate: new Date().toISOString(),
+            gender: detectGender(row[1] || '')
+        }));
+    saveProgress();
+    startSession();
+}
+
+function detectGender(germanWord) {
+    if (!germanWord) return null;
+    
+    const word = germanWord.trim().toLowerCase();
+    
+    // Проверяем артикли в начале слова
+    if (word.startsWith('der ')) {
+        return 'masculine';
+    } else if (word.startsWith('die ')) {
+        return 'feminine';
+    } else if (word.startsWith('das ')) {
+        return 'neuter';
+    }
+    
+    // Проверяем артикли в скобках или через дефис
+    if (word.includes('(der)') || word.includes('- der')) {
+        return 'masculine';
+    } else if (word.includes('(die)') || word.includes('- die')) {
+        return 'feminine';
+    } else if (word.includes('(das)') || word.includes('- das')) {
+        return 'neuter';
+    }
+    
+    return null; // Если род не определен, возвращаем null
+}
+
+function saveProgress() {
+    if (fullDeck.length > 0) {
+        localStorage.setItem(DECK_KEY, JSON.stringify(fullDeck));
+    }
+}
+
+function loadProgress() {
+    const savedDeck = localStorage.getItem(DECK_KEY);
+    if (savedDeck) {
+        fullDeck = JSON.parse(savedDeck);
+        // Добавляем определение рода для существующих карточек, если его нет
+        fullDeck = fullDeck.map(card => {
+            if (!card.gender) {
+                card.gender = detectGender(card.german);
+            }
+            return card;
+        });
+        if (fullDeck.length > 0) {
+            startSession();
+        }
+    }
+}
+
+function getTodayStats() {
+    const today = new Date().toDateString();
+    const saved = localStorage.getItem(DAILY_STATS_KEY);
+    let stats = saved ? JSON.parse(saved) : {};
+    
+    if (!stats[today]) {
+        stats[today] = { done: 0 };
+    }
+    
+    return stats[today];
+}
+
+function updateTodayStats(increment = 1) {
+    const today = new Date().toDateString();
+    const saved = localStorage.getItem(DAILY_STATS_KEY);
+    let stats = saved ? JSON.parse(saved) : {};
+    
+    if (!stats[today]) {
+        stats[today] = { done: 0 };
+    }
+    
+    stats[today].done += increment;
+    localStorage.setItem(DAILY_STATS_KEY, JSON.stringify(stats));
+    
+    return stats[today];
+}
+
+function startSession() {
+    uploadContainer.classList.add('hidden');
+    trainerContainer.classList.remove('hidden');
+    sessionEndElement.classList.add('hidden');
+    
+    const now = new Date();
+    const dueCards = fullDeck.filter(card => new Date(card.nextReviewDate) <= now);
+    const newCards = fullDeck.filter(card => card.interval === 0 && new Date(card.nextReviewDate) <= now);
+    
+    sessionQueue = dueCards.sort(() => Math.random() - 0.5);
+    
+    const todayStats = getTodayStats();
+    
+    const stats = {
+        new: newCards.length,
+        due: dueCards.length - newCards.length,
+        done: todayStats.done
+    };
+    
+    window.sessionStats = stats;
+    updateStatsUI();
+    updateMasteredCount();
+    
+    if (sessionQueue.length > 0) {
+        nextCard();
+    } else {
+        endSession();
+    }
+}
+
+function updateStatsUI() {
+    newCountEl.textContent = window.sessionStats.new;
+    dueCountEl.textContent = window.sessionStats.due;
+    doneCountEl.textContent = window.sessionStats.done;
+}
+
+function nextCard() {
+    if (sessionQueue.length === 0) {
+        endSession();
+        return;
+    }
+    currentCard = sessionQueue.shift();
+    isCardFlipped = false;
+    displayCard();
+}
+
+function displayCard() {
+    ratingContainer.classList.remove('hidden');
+    
+    // Определяем класс для окраски слова
+    let genderClass = '';
+    if (currentCard.gender === 'masculine') {
+        genderClass = 'masculine';
+    } else if (currentCard.gender === 'feminine') {
+        genderClass = 'feminine';
+    } else if (currentCard.gender === 'neuter') {
+        genderClass = 'neuter';
+    }
+    
+    cardContainer.innerHTML = `
+        <div class="card-inner" id="card-inner">
+            <div class="card-face card-front">
+                <div class="german-word ${genderClass}">${currentCard.german}</div>
+                ${currentCard.example ? `<div class="example">${currentCard.example}</div>` : ''}
+            </div>
+            <div class="card-face card-back">
+                <div class="translation">${currentCard.translation}</div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('card-inner').addEventListener('click', flipCard);
+}
+
+function flipCard() {
+    const cardInner = document.getElementById('card-inner');
+    
+    if (!isCardFlipped) {
+        cardInner.classList.add('is-flipped');
+        isCardFlipped = true;
+    } else {
+        cardInner.classList.remove('is-flipped');
+        isCardFlipped = false;
+    }
+}
+
+function handleRating(event) {
+    if (!event.target.matches('.rating-btn')) return;
+
+    const rating = parseInt(event.target.dataset.rating, 10);
+    const isNew = currentCard.interval === 0;
+
+    // Обновляем счетчик освоенных слов
+    if (rating >= 5) {
+        updateMasteredWords(currentCard.id, rating);
+    }
+
+    updateCardInterval(rating);
+    
+    // Обновляем ежедневную статистику
+    const updatedStats = updateTodayStats(1);
+    window.sessionStats.done = updatedStats.done;
+    
+    // Обновляем статистику сессии
+    if (isNew) {
+        window.sessionStats.new = Math.max(0, window.sessionStats.new - 1);
+    } else {
+        window.sessionStats.due = Math.max(0, window.sessionStats.due - 1);
+    }
+
+    updateStatsUI();
+    updateMasteredCount();
+    saveProgress();
+    
+    setTimeout(() => {
+        nextCard();
+    }, 300);
+}
+
+function updateCardInterval(rating) {
+    const MIN_EASE = 1.3;
+    let { easeFactor, interval } = currentCard;
+    
+    if (rating < 3) {
+        interval = 0;
+        easeFactor = Math.max(MIN_EASE, easeFactor - 0.2);
+        sessionQueue.push(currentCard);
+    } else {
+        if (interval === 0) {
+            interval = 1;
+        } else if (interval === 1) {
+            interval = 4;
+        } else {
+            interval = Math.round(interval * easeFactor);
+        }
+        easeFactor = easeFactor + (0.1 - (6 - rating) * (0.08 + (6 - rating) * 0.02));
+        if (easeFactor < MIN_EASE) easeFactor = MIN_EASE;
+    }
+    
+    currentCard.interval = interval;
+    currentCard.easeFactor = easeFactor;
+    
+    const now = new Date();
+    const nextReview = (interval > 0)
+        ? new Date(now.getTime() + interval * 24 * 60 * 60 * 1000)
+        : new Date(now.getTime() + 5 * 60 * 1000);
+    
+    currentCard.nextReviewDate = nextReview.toISOString();
+}
+
+function previewNextReviewDate(card, rating) {
+    const MIN_EASE = 1.3;
+    let easeFactor = card.easeFactor || 2.5;
+    let interval = card.interval || 0;
+
+    if (rating < 3) {
+        return new Date(Date.now() + 5 * 60 * 1000);
+    }
+
+    if (interval === 0) {
+        interval = 1;
+    } else if (interval === 1) {
+        interval = 4;
+    } else {
+        interval = Math.round(interval * easeFactor);
+    }
+
+    return new Date(Date.now() + interval * 24 * 60 * 60 * 1000);
+}
+
+function updateMasteredWords(cardId, rating) {
+    const now = new Date();
+    const saved = localStorage.getItem(MASTERED_KEY);
+    let mastered = saved ? JSON.parse(saved) : {};
+    
+    if (rating === 5) {
+        // Помню - 12 дней
+        mastered[cardId] = {
+            expires: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000).toISOString(),
+            rating: 5
+        };
+    } else if (rating === 6) {
+        // Отлично - 21 день
+        mastered[cardId] = {
+            expires: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000).toISOString(),
+            rating: 6
+        };
+    }
+    
+    localStorage.setItem(MASTERED_KEY, JSON.stringify(mastered));
+}
+
+function updateMasteredCount() {
+    const now = new Date();
+    const saved = localStorage.getItem(MASTERED_KEY);
+    let mastered = saved ? JSON.parse(saved) : {};
+    
+    // Удаляем истекшие записи
+    for (const [cardId, data] of Object.entries(mastered)) {
+        if (new Date(data.expires) <= now) {
+            delete mastered[cardId];
+        }
+    }
+    
+    // Сохраняем обновленные данные
+    localStorage.setItem(MASTERED_KEY, JSON.stringify(mastered));
+    
+    // Обновляем счетчик
+    const count = Object.keys(mastered).length;
+    masteredNumberEl.textContent = count;
+}
+
+function endSession() {
+    trainerContainer.classList.add('hidden');
+    uploadContainer.classList.add('hidden');
+    sessionEndElement.classList.remove('hidden');
+}
+</script>
+
+</body>
+</html>
