@@ -106,6 +106,11 @@
             box-shadow: var(--shadow-hover);
         }
 
+        .upload-area.dragover {
+            background: rgba(103, 126, 234, 0.1);
+            border-color: var(--primary-gradient);
+        }
+
         .upload-area p {
             margin: 0;
             color: var(--text-dark);
@@ -113,16 +118,31 @@
             font-size: 16px;
         }
 
-        input[type="file"] {
-            display: block;
-            margin: 20px auto 0;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
+        .file-input-container {
+            margin-top: 20px;
+        }
+
+        .file-input-button {
             background: var(--primary-gradient);
             color: white;
-            font-weight: 500;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        #file-input {
+            display: none;
         }
 
         .stats {
@@ -402,14 +422,19 @@
     <h1>🇩🇪 German Words Trainer</h1>
 
     <div id="upload-container">
-        <label for="file-input" class="upload-area">
-            <p>📁 Загрузите Excel (.xlsx) файл со словами</p>
-             
+        <div class="upload-area" id="upload-area">
+            <p>📁 Перетащите Excel (.xlsx) файл сюда или нажмите кнопку ниже</p>
             <small style="color: var(--text-light); margin-top: 10px; display: block;">
                 Формат: ID | Немецкое слово | Перевод | Пример
             </small>
-        </label>
-        <input type="file" id="file-input" style="display: none;" />
+        </div>
+        
+        <div class="file-input-container">
+            <label for="file-input" class="file-input-button">
+                📂 Выбрать файл
+            </label>
+            <input type="file" id="file-input" accept=".xlsx,.xls" />
+        </div>
         
         <div class="gender-legend">
             <div class="gender-legend-item">
@@ -478,42 +503,33 @@ const newCountEl = document.getElementById('new-count');
 const dueCountEl = document.getElementById('due-count');
 const doneCountEl = document.getElementById('done-count');
 const masteredNumberEl = document.getElementById('mastered-number');
+const uploadArea = document.getElementById('upload-area');
 
-const uploadArea = document.querySelector('.upload-area');
-
-// Обрабатываем наведение
+// Настройка drag & drop
 uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
-    uploadArea.style.backgroundColor = '#e0e0e0'; // визуальный эффект
+    uploadArea.classList.add('dragover');
 });
 
-// Обрабатываем выход курсора
-uploadArea.addEventListener('dragleave', () => {
-    uploadArea.style.backgroundColor = '';
+uploadArea.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
 });
 
-// Обрабатываем "бросание" файла
 uploadArea.addEventListener('drop', (e) => {
     e.preventDefault();
-    uploadArea.style.backgroundColor = '';
-    const file = e.dataTransfer.files[0];
-    if (file) {
-        handleFileDirect(file); // НЕ используем fileInput
+    uploadArea.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        handleFile(files[0]);
     }
 });
 
-function handleFileDirect(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        parseAndInitDeck(json);
-    };
-    reader.readAsArrayBuffer(file);
-}
+// Обработка клика по области загрузки
+uploadArea.addEventListener('click', () => {
+    fileInput.click();
+});
 
 let fullDeck = [];
 let sessionQueue = [];
@@ -523,7 +539,12 @@ const DECK_KEY = 'german_words_deck_v3';
 const DAILY_STATS_KEY = 'daily_stats_v3';
 const MASTERED_KEY = 'mastered_words_v3';
 
-fileInput.addEventListener('change', handleFileUpload);
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handleFile(e.target.files[0]);
+    }
+});
+
 ratingContainer.addEventListener('click', handleRating);
 restartBtn.addEventListener('click', () => {
     localStorage.removeItem(DECK_KEY);
@@ -532,31 +553,43 @@ restartBtn.addEventListener('click', () => {
 });
 window.addEventListener('load', loadProgress);
 
-function handleFileUpload(event) {
-    console.log("Файл выбран", event.target.files);
-    const file = event.target.files[0];
-    if (!file) {
-        console.log("Файл не выбран");
+function handleFile(file) {
+    if (!file) return;
+    
+    // Проверяем тип файла
+    if (!file.name.match(/\.(xlsx|xls)$/i)) {
+        alert('Пожалуйста, выберите Excel файл (.xlsx или .xls)');
         return;
     }
+    
     const reader = new FileReader();
     reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        parseAndInitDeck(json);
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            parseAndInitDeck(json);
+        } catch (error) {
+            alert('Ошибка при чтении файла. Убедитесь, что файл не поврежден.');
+            console.error('Ошибка парсинга файла:', error);
+        }
     };
     reader.readAsArrayBuffer(file);
 }
 
 function parseAndInitDeck(data) {
+    if (!data || data.length < 2) {
+        alert('Файл пуст или содержит недостаточно данных.');
+        return;
+    }
+    
     fullDeck = data
         .slice(1)
         .filter(row => row && row[1] && row[2])
         .map(row => ({
-            id: row[0],
+            id: row[0] || Math.random().toString(36).substr(2, 9),
             german: row[1] || '',
             translation: row[2] || '',
             example: row[3] || '',
@@ -565,6 +598,12 @@ function parseAndInitDeck(data) {
             nextReviewDate: new Date().toISOString(),
             gender: detectGender(row[1] || '')
         }));
+    
+    if (fullDeck.length === 0) {
+        alert('В файле не найдено подходящих данных. Проверьте формат файла.');
+        return;
+    }
+    
     saveProgress();
     startSession();
 }
