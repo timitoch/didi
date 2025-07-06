@@ -10,7 +10,7 @@
 <body>
 
 <div class="container">
-
+    
 
     <div id="upload-container">
         <div class="upload-area" id="upload-area">
@@ -44,8 +44,20 @@
     </div>
 
     <div id="trainer-container" class="hidden">
-        <button id="back-btn" class="back-btn" title="Предыдущее слово">←</button>
-        <button id="reload-file-btn" class="reload-file-btn" title="Обновить файл">📂 Обновить</button>
+        <div class="trainer-header">
+            <div class="header-left">
+                <button id="back-btn" class="back-btn" title="Предыдущее слово">←</button>
+                <button id="reload-file-btn" class="reload-file-btn" title="Обновить файл">📁</button>
+            </div>
+            <div class="header-center">
+                <h1 class="trainer-title">🇩🇪 German Words Trainer</h1>
+            </div>
+            <div class="header-right">
+                <div class="mastered-count" id="mastered-count">
+                    Освоено: <span id="mastered-number">0</span>
+                </div>
+            </div>
+        </div>
         
         <div class="stats">
             <div class="stat-item">
@@ -60,10 +72,6 @@
                 <div class="stat-number" id="done-count">0</div>
                 <div class="stat-label">Изучено сегодня</div>
             </div>
-        </div>
-
-        <div class="mastered-count" id="mastered-count">
-            Освоено: <span id="mastered-number">0</span>
         </div>
 
         <div id="card-container" class="card-container"></div>
