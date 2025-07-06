@@ -16,7 +16,7 @@
         <div class="upload-area" id="upload-area">
             <p>📁 Перетащите Excel (.xlsx) файл сюда или нажмите кнопку ниже</p>
             <small style="color: var(--text-light); margin-top: 10px; display: block;">
-                Формат: ID | Немецкое слово | Перевод | Пример
+                Формат: ID | Немецкое слово | Перевод | Дополнительная информация 1 (формы глагола) | Дополнительная информация 2 (падеж, приставка) | Пример 1 | Пример 2 | Пример 3
             </small>
         </div>
         
@@ -203,7 +203,11 @@ function parseAndInitDeck(data) {
             id: row[0] || Math.random().toString(36).substr(2, 9),
             german: row[1] || '',
             translation: row[2] || '',
-            example: row[3] || '',
+            additionalInfo1: row[3] || '',
+            additionalInfo2: row[4] || '',
+            example1: row[5] || '',
+            example2: row[6] || '',
+            example3: row[7] || '',
             interval: 0,
             easeFactor: 2.5,
             nextReviewDate: new Date().toISOString(),
@@ -217,23 +221,27 @@ function parseAndInitDeck(data) {
     
     // Если есть существующие слова, сохраняем их прогресс
     if (fullDeck.length > 0) {
-        // Создаем карту существующих слов по ID
+        // Создаем карту существующих слов по немецкому слову
         const existingWords = new Map();
         fullDeck.forEach(word => {
-            existingWords.set(word.id, word);
+            existingWords.set(word.german, word);
         });
         
         // Объединяем новые слова с существующими
         const mergedDeck = [];
         newWords.forEach(newWord => {
-            const existingWord = existingWords.get(newWord.id);
+            const existingWord = existingWords.get(newWord.german);
             if (existingWord) {
                 // Обновляем существующее слово, сохраняя прогресс
                 mergedDeck.push({
                     ...existingWord,
                     german: newWord.german,
                     translation: newWord.translation,
-                    example: newWord.example,
+                    additionalInfo1: newWord.additionalInfo1,
+                    additionalInfo2: newWord.additionalInfo2,
+                    example1: newWord.example1,
+                    example2: newWord.example2,
+                    example3: newWord.example3,
                     gender: newWord.gender
                 });
             } else {
@@ -414,11 +422,33 @@ function displayCard() {
         genderClass = 'neuter';
     }
     
+    // Собираем дополнительную информацию
+    let additionalInfo = '';
+    if (currentCard.additionalInfo1) {
+        additionalInfo += `<div class="additional-info">${currentCard.additionalInfo1}</div>`;
+    }
+    if (currentCard.additionalInfo2) {
+        additionalInfo += `<div class="additional-info">${currentCard.additionalInfo2}</div>`;
+    }
+    
+    // Собираем примеры
+    let examples = '';
+    if (currentCard.example1) {
+        examples += `<div class="example">${currentCard.example1}</div>`;
+    }
+    if (currentCard.example2) {
+        examples += `<div class="example">${currentCard.example2}</div>`;
+    }
+    if (currentCard.example3) {
+        examples += `<div class="example">${currentCard.example3}</div>`;
+    }
+    
     cardContainer.innerHTML = `
         <div class="card-inner" id="card-inner">
             <div class="card-face card-front">
                 <div class="german-word ${genderClass}">${currentCard.german}</div>
-                ${currentCard.example ? `<div class="example">${currentCard.example}</div>` : ''}
+                ${additionalInfo}
+                ${examples}
             </div>
             <div class="card-face card-back">
                 <div class="translation">${currentCard.translation}</div>
