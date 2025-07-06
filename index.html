@@ -404,6 +404,7 @@
     <div id="upload-container">
         <label for="file-input" class="upload-area">
             <p>📁 Загрузите Excel (.xlsx) файл со словами</p>
+             <input type="file" id="file-input" style="display: none;" />
             <small style="color: var(--text-light); margin-top: 10px; display: block;">
                 Формат: ID | Немецкое слово | Перевод | Пример
             </small>
@@ -478,6 +479,32 @@ const dueCountEl = document.getElementById('due-count');
 const doneCountEl = document.getElementById('done-count');
 const masteredNumberEl = document.getElementById('mastered-number');
 
+const uploadArea = document.querySelector('.upload-area');
+
+// Обрабатываем наведение
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.style.backgroundColor = '#e0e0e0'; // визуальный эффект
+});
+
+// Обрабатываем выход курсора
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.style.backgroundColor = '';
+});
+
+// Обрабатываем "бросание" файла
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.style.backgroundColor = '';
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        // Заменяем файл в input
+        fileInput.files = e.dataTransfer.files;
+        handleFileUpload({ target: fileInput }); // вызываем уже существующую функцию
+    }
+});
+
+
 let fullDeck = [];
 let sessionQueue = [];
 let currentCard = null;
@@ -496,8 +523,12 @@ restartBtn.addEventListener('click', () => {
 window.addEventListener('load', loadProgress);
 
 function handleFileUpload(event) {
+    console.log("Файл выбран", event.target.files);
     const file = event.target.files[0];
-    if (!file) return;
+    if (!file) {
+        console.log("Файл не выбран");
+        return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
         const data = new Uint8Array(e.target.result);
