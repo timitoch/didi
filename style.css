@@ -112,7 +112,8 @@
 
     
         .trainer-title {
-            font-size: 28px;
+            display: none;
+            font-size: 22px;
             font-weight: 600;
             
             margin: 0;
