@@ -512,3 +512,225 @@
                 gap: 8px;
             }
         }
+
+        /* Синхронизация */
+.sync-container {
+    margin: 20px 0;
+    padding: 20px;
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+}
+
+.sync-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.sync-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sync-btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary-gradient);
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.sync-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sync-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.sync-code-display {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sync-code-header {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 10px;
+}
+
+.sync-code {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--primary-color);
+    font-family: monospace;
+    letter-spacing: 2px;
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+}
+
+.sync-input-container {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+#sync-code-input {
+    flex: 1;
+    min-width: 150px;
+    padding: 10px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-family: monospace;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#sync-code-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.sync-status-small {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+    margin-right: 10px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Уведомления */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.notification-success {
+    background-color: #10b981;
+}
+
+.notification-error {
+    background-color: #ef4444;
+}
+
+.notification-info {
+    background-color: #3b82f6;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Адаптивность для синхронизации */
+@media (max-width: 768px) {
+    .sync-controls {
+        flex-direction: column;
+    }
+    
+    .sync-btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .sync-input-container {
+        flex-direction: column;
+    }
+    
+    #sync-code-input {
+        width: 100%;
+    }
+    
+    .sync-code {
+        font-size: 20px;
+        letter-spacing: 1px;
+    }
+    
+    .notification {
+        left: 20px;
+        right: 20px;
+        top: 20px;
+    }
+}
+
+/* Дополнительные стили для индикатора синхронизации */
+.sync-status-small {
+    transition: all 0.3s ease;
+}
+
+.sync-status-small:hover {
+    transform: scale(1.1);
+}
+
+/* Анимация для кода синхронизации */
+.sync-code-display {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.sync-input-container {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
