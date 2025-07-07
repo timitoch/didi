@@ -72,7 +72,7 @@
             font-size: 32px;
             font-weight: 700;
             margin-bottom: 30px;
-            background: var(--primary-gradient);
+            background: #2c3e50;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -98,7 +98,9 @@
         }
 
         .header-center {
-            display: none; /* Убираем центральную часть с заголовком */
+            flex: 1;
+            display: flex;
+            justify-content: center;
         }
 
         .header-right {
@@ -108,16 +110,13 @@
             flex: 1;
         }
 
-        
-
+    
         .trainer-title {
             font-size: 28px;
             font-weight: 600;
             
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
             margin: 0;
+            opacity: 0.8;
         }
 
         /* Стили для кнопки назад */

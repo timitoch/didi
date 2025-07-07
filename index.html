@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>German Words Trainer 3.0</title>
+    <title>Words Trainer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-database-compat.min.js"></script>
     <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
@@ -25,6 +27,32 @@
                 📂 Выбрать файл
             </label>
             <input type="file" id="file-input" accept=".xlsx,.xls" />
+        </div>
+        
+        <!-- Блок синхронизации -->
+        <div class="sync-container">
+            <div class="sync-status" id="sync-status">
+                <span id="sync-indicator">🔄</span>
+                <span id="sync-text">Синхронизация отключена</span>
+            </div>
+            
+            <div class="sync-controls">
+                <button id="create-sync-btn" class="sync-btn">🔗 Создать код синхронизации</button>
+                <button id="join-sync-btn" class="sync-btn">📲 Подключиться по коду</button>
+                <button id="disconnect-sync-btn" class="sync-btn hidden">❌ Отключить синхронизацию</button>
+            </div>
+            
+            <div id="sync-code-display" class="sync-code-display hidden">
+                <div class="sync-code-header">Ваш код синхронизации:</div>
+                <div class="sync-code" id="sync-code"></div>
+                <small>Поделитесь этим кодом с другими устройствами</small>
+            </div>
+            
+            <div id="sync-input-container" class="sync-input-container hidden">
+                <input type="text" id="sync-code-input" placeholder="Введите код синхронизации" maxlength="8">
+                <button id="connect-sync-btn" class="sync-btn">Подключиться</button>
+                <button id="cancel-sync-btn" class="sync-btn">Отмена</button>
+            </div>
         </div>
         
         <div class="gender-legend">
@@ -50,9 +78,12 @@
                 <button id="reload-file-btn" class="reload-file-btn" title="Обновить файл">📁</button>
             </div>
             <div class="header-center">
-                <h1 class="trainer-title">🇩🇪 German Words Trainer</h1>
+                <h1 class="trainer-title">WordLab</h1>
             </div>
             <div class="header-right">
+                <div class="sync-status-small" id="sync-status-small">
+                    <span id="sync-indicator-small">🔄</span>
+                </div>
                 <div class="mastered-count" id="mastered-count">
                     Освоено: <span id="mastered-number">0</span>
                 </div>
@@ -94,6 +125,22 @@
 </div>
 
 <script>
+// Firebase конфигурация
+const firebaseConfig = {
+    apiKey: "AIzaSyDecNXBkdSPE7Vhl3RgbgwOcjLNvPcxsPw",
+    authDomain: "wordlab-sync.firebaseapp.com",
+    databaseURL: "https://wordlab-sync-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "wordlab-sync",
+    storageBucket: "wordlab-sync.firebasestorage.app",
+    messagingSenderId: "1095424207075",
+    appId: "1:1095424207075:web:0c2e07e78066db3025fdd6"
+};
+
+// Инициализация Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// Элементы интерфейса
 const uploadContainer = document.getElementById('upload-container');
 const fileInput = document.getElementById('file-input');
 const trainerContainer = document.getElementById('trainer-container');
@@ -108,6 +155,327 @@ const dueCountEl = document.getElementById('due-count');
 const doneCountEl = document.getElementById('done-count');
 const masteredNumberEl = document.getElementById('mastered-number');
 const uploadArea = document.getElementById('upload-area');
+
+// Элементы синхронизации
+const createSyncBtn = document.getElementById('create-sync-btn');
+const joinSyncBtn = document.getElementById('join-sync-btn');
+const disconnectSyncBtn = document.getElementById('disconnect-sync-btn');
+const syncCodeDisplay = document.getElementById('sync-code-display');
+const syncCodeEl = document.getElementById('sync-code');
+const syncInputContainer = document.getElementById('sync-input-container');
+const syncCodeInput = document.getElementById('sync-code-input');
+const connectSyncBtn = document.getElementById('connect-sync-btn');
+const cancelSyncBtn = document.getElementById('cancel-sync-btn');
+const syncStatus = document.getElementById('sync-status');
+const syncText = document.getElementById('sync-text');
+const syncIndicator = document.getElementById('sync-indicator');
+const syncIndicatorSmall = document.getElementById('sync-indicator-small');
+
+// Класс для работы с синхронизацией
+class SyncManager {
+    constructor() {
+        this.currentSyncCode = null;
+        this.isConnected = false;
+        this.syncRef = null;
+        this.lastSyncTime = 0;
+        this.syncDebounceTimer = null;
+        
+        this.loadSyncSettings();
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        createSyncBtn.addEventListener('click', () => this.createSync());
+        joinSyncBtn.addEventListener('click', () => this.showJoinSync());
+        disconnectSyncBtn.addEventListener('click', () => this.disconnectSync());
+        connectSyncBtn.addEventListener('click', () => this.connectToSync());
+        cancelSyncBtn.addEventListener('click', () => this.hideJoinSync());
+        
+        syncCodeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.connectToSync();
+            }
+        });
+    }
+    
+    generateSyncCode() {
+        return Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+    
+    loadSyncSettings() {
+        const savedCode = localStorage.getItem('sync_code');
+        if (savedCode) {
+            this.currentSyncCode = savedCode;
+            this.connectToExistingSync();
+        }
+    }
+    
+    async createSync() {
+        try {
+            const code = this.generateSyncCode();
+            this.currentSyncCode = code;
+            
+            // Создаем запись в Firebase
+            await database.ref(`sync_codes/${code}`).set({
+                created: firebase.database.ServerValue.TIMESTAMP,
+                data: this.getLocalData()
+            });
+            
+            localStorage.setItem('sync_code', code);
+            this.setupSyncListener();
+            this.showSyncCode(code);
+            this.updateSyncStatus('Синхронизация активна', '🟢');
+            
+        } catch (error) {
+            console.error('Ошибка создания синхронизации:', error);
+            alert('Ошибка создания синхронизации. Проверьте подключение к интернету.');
+        }
+    }
+    
+    showJoinSync() {
+        syncInputContainer.classList.remove('hidden');
+        createSyncBtn.classList.add('hidden');
+        joinSyncBtn.classList.add('hidden');
+        syncCodeInput.focus();
+    }
+    
+    hideJoinSync() {
+        syncInputContainer.classList.add('hidden');
+        createSyncBtn.classList.remove('hidden');
+        joinSyncBtn.classList.remove('hidden');
+        syncCodeInput.value = '';
+    }
+    
+    async connectToSync() {
+        const code = syncCodeInput.value.trim().toUpperCase();
+        
+        if (!code) {
+            alert('Введите код синхронизации');
+            return;
+        }
+        
+        try {
+            // Проверяем существование кода
+            const snapshot = await database.ref(`sync_codes/${code}`).once('value');
+            
+            if (!snapshot.exists()) {
+                alert('Код синхронизации не найден');
+                return;
+            }
+            
+            this.currentSyncCode = code;
+            localStorage.setItem('sync_code', code);
+            
+            // Загружаем данные из Firebase
+            const remoteData = snapshot.val().data;
+            if (remoteData) {
+                this.mergeRemoteData(remoteData);
+            }
+            
+            this.setupSyncListener();
+            this.hideJoinSync();
+            this.updateSyncStatus('Синхронизация активна', '🟢');
+            
+        } catch (error) {
+            console.error('Ошибка подключения к синхронизации:', error);
+            alert('Ошибка подключения. Проверьте код и интернет-соединение.');
+        }
+    }
+    
+    async connectToExistingSync() {
+        if (!this.currentSyncCode) return;
+        
+        try {
+            const snapshot = await database.ref(`sync_codes/${this.currentSyncCode}`).once('value');
+            
+            if (snapshot.exists()) {
+                this.setupSyncListener();
+                this.updateSyncStatus('Синхронизация активна', '🟢');
+            } else {
+                // Код больше не существует
+                this.disconnectSync();
+            }
+        } catch (error) {
+            console.error('Ошибка подключения к существующей синхронизации:', error);
+            this.updateSyncStatus('Ошибка синхронизации', '🔴');
+        }
+    }
+    
+    setupSyncListener() {
+        if (!this.currentSyncCode) return;
+        
+        this.syncRef = database.ref(`sync_codes/${this.currentSyncCode}/data`);
+        
+        this.syncRef.on('value', (snapshot) => {
+            if (snapshot.exists()) {
+                const remoteData = snapshot.val();
+                const remoteTimestamp = remoteData.lastModified || 0;
+                
+                // Избегаем загрузки своих же изменений
+                if (remoteTimestamp > this.lastSyncTime) {
+                    this.mergeRemoteData(remoteData);
+                    this.updateSyncStatus('Синхронизировано', '🟢');
+                    
+                    // Обновляем интерфейс, если нужно
+                    if (fullDeck.length > 0) {
+                        updateStatsUI();
+                        updateMasteredCount();
+                    }
+                }
+            }
+        });
+        
+        this.isConnected = true;
+        disconnectSyncBtn.classList.remove('hidden');
+        createSyncBtn.classList.add('hidden');
+        joinSyncBtn.classList.add('hidden');
+    }
+    
+    disconnectSync() {
+        if (this.syncRef) {
+            this.syncRef.off();
+            this.syncRef = null;
+        }
+        
+        this.currentSyncCode = null;
+        this.isConnected = false;
+        localStorage.removeItem('sync_code');
+        
+        syncCodeDisplay.classList.add('hidden');
+        disconnectSyncBtn.classList.add('hidden');
+        createSyncBtn.classList.remove('hidden');
+        joinSyncBtn.classList.remove('hidden');
+        
+        this.updateSyncStatus('Синхронизация отключена', '🔄');
+    }
+    
+    showSyncCode(code) {
+        syncCodeEl.textContent = code;
+        syncCodeDisplay.classList.remove('hidden');
+        disconnectSyncBtn.classList.remove('hidden');
+        createSyncBtn.classList.add('hidden');
+        joinSyncBtn.classList.add('hidden');
+    }
+    
+    updateSyncStatus(text, indicator) {
+        syncText.textContent = text;
+        syncIndicator.textContent = indicator;
+        syncIndicatorSmall.textContent = indicator;
+    }
+    
+    getLocalData() {
+        return {
+            deck: fullDeck,
+            dailyStats: JSON.parse(localStorage.getItem(DAILY_STATS_KEY) || '{}'),
+            masteredWords: JSON.parse(localStorage.getItem(MASTERED_KEY) || '{}'),
+            lastModified: Date.now()
+        };
+    }
+    
+    mergeRemoteData(remoteData) {
+        if (remoteData.deck && remoteData.deck.length > 0) {
+            fullDeck = this.mergeDeckData(fullDeck, remoteData.deck);
+            localStorage.setItem(DECK_KEY, JSON.stringify(fullDeck));
+        }
+        
+        if (remoteData.dailyStats) {
+            const localStats = JSON.parse(localStorage.getItem(DAILY_STATS_KEY) || '{}');
+            const mergedStats = this.mergeDailyStats(localStats, remoteData.dailyStats);
+            localStorage.setItem(DAILY_STATS_KEY, JSON.stringify(mergedStats));
+        }
+        
+        if (remoteData.masteredWords) {
+            const localMastered = JSON.parse(localStorage.getItem(MASTERED_KEY) || '{}');
+            const mergedMastered = this.mergeMasteredWords(localMastered, remoteData.masteredWords);
+            localStorage.setItem(MASTERED_KEY, JSON.stringify(mergedMastered));
+        }
+        
+        this.lastSyncTime = Date.now();
+    }
+    
+    mergeDeckData(local, remote) {
+        const merged = new Map();
+        
+        // Добавляем локальные карточки
+        local.forEach(card => {
+            merged.set(card.id, card);
+        });
+        
+        // Объединяем с удаленными карточками
+        remote.forEach(remoteCard => {
+            const localCard = merged.get(remoteCard.id);
+            
+            if (!localCard) {
+                merged.set(remoteCard.id, remoteCard);
+            } else {
+                // Берем карточку с более поздней датой следующего повторения
+                const localNext = new Date(localCard.nextReviewDate);
+                const remoteNext = new Date(remoteCard.nextReviewDate);
+                
+                if (remoteNext > localNext) {
+                    merged.set(remoteCard.id, remoteCard);
+                }
+            }
+        });
+        
+        return Array.from(merged.values());
+    }
+    
+    mergeDailyStats(local, remote) {
+        const merged = { ...local };
+        
+        Object.keys(remote).forEach(date => {
+            if (!merged[date]) {
+                merged[date] = remote[date];
+            } else {
+                merged[date].done = Math.max(merged[date].done, remote[date].done);
+            }
+        });
+        
+        return merged;
+    }
+    
+    mergeMasteredWords(local, remote) {
+        const merged = { ...local };
+        
+        Object.keys(remote).forEach(cardId => {
+            if (!merged[cardId]) {
+                merged[cardId] = remote[cardId];
+            } else {
+                // Берем запись с более поздней датой истечения
+                const localExpires = new Date(merged[cardId].expires);
+                const remoteExpires = new Date(remote[cardId].expires);
+                
+                if (remoteExpires > localExpires) {
+                    merged[cardId] = remote[cardId];
+                }
+            }
+        });
+        
+        return merged;
+    }
+    
+    async syncToRemote() {
+        if (!this.isConnected || !this.currentSyncCode) return;
+        
+        // Дебаунс для избежания частых обновлений
+        clearTimeout(this.syncDebounceTimer);
+        this.syncDebounceTimer = setTimeout(async () => {
+            try {
+                const data = this.getLocalData();
+                await database.ref(`sync_codes/${this.currentSyncCode}/data`).set(data);
+                this.lastSyncTime = Date.now();
+                this.updateSyncStatus('Синхронизировано', '🟢');
+            } catch (error) {
+                console.error('Ошибка синхронизации:', error);
+                this.updateSyncStatus('Ошибка синхронизации', '🔴');
+            }
+        }, 1000);
+    }
+}
+
+// Инициализация менеджера синхронизации
+const syncManager = new SyncManager();
 
 // Настройка drag & drop
 uploadArea.addEventListener('dragover', (e) => {
@@ -130,7 +498,6 @@ uploadArea.addEventListener('drop', (e) => {
     }
 });
 
-// Обработка клика по области загрузки
 uploadArea.addEventListener('click', () => {
     fileInput.click();
 });
@@ -167,7 +534,6 @@ window.addEventListener('load', loadProgress);
 function handleFile(file) {
     if (!file) return;
     
-    // Проверяем тип файла
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
         alert('Пожалуйста, выберите Excel файл (.xlsx или .xls)');
         return;
@@ -219,20 +585,16 @@ function parseAndInitDeck(data) {
         return;
     }
     
-    // Если есть существующие слова, сохраняем их прогресс
     if (fullDeck.length > 0) {
-        // Создаем карту существующих слов по немецкому слову
         const existingWords = new Map();
         fullDeck.forEach(word => {
             existingWords.set(word.german, word);
         });
         
-        // Объединяем новые слова с существующими
         const mergedDeck = [];
         newWords.forEach(newWord => {
             const existingWord = existingWords.get(newWord.german);
             if (existingWord) {
-                // Обновляем существующее слово, сохраняя прогресс
                 mergedDeck.push({
                     ...existingWord,
                     german: newWord.german,
@@ -245,7 +607,6 @@ function parseAndInitDeck(data) {
                     gender: newWord.gender
                 });
             } else {
-                // Добавляем новое слово
                 mergedDeck.push(newWord);
             }
         });
@@ -265,7 +626,6 @@ function detectGender(germanWord) {
     
     const word = germanWord.trim().toLowerCase();
     
-    // Проверяем артикли в начале слова
     if (word.startsWith('der ')) {
         return 'masculine';
     } else if (word.startsWith('die ')) {
@@ -274,7 +634,6 @@ function detectGender(germanWord) {
         return 'neuter';
     }
     
-    // Проверяем артикли в скобках или через дефис
     if (word.includes('(der)') || word.includes('- der')) {
         return 'masculine';
     } else if (word.includes('(die)') || word.includes('- die')) {
@@ -283,12 +642,14 @@ function detectGender(germanWord) {
         return 'neuter';
     }
     
-    return null; // Если род не определен, возвращаем null
+    return null;
 }
 
 function saveProgress() {
     if (fullDeck.length > 0) {
         localStorage.setItem(DECK_KEY, JSON.stringify(fullDeck));
+        // Синхронизация с сервером
+        syncManager.syncToRemote();
     }
 }
 
@@ -296,7 +657,6 @@ function loadProgress() {
     const savedDeck = localStorage.getItem(DECK_KEY);
     if (savedDeck) {
         fullDeck = JSON.parse(savedDeck);
-        // Добавляем определение рода для существующих карточек, если его нет
         fullDeck = fullDeck.map(card => {
             if (!card.gender) {
                 card.gender = detectGender(card.german);
@@ -332,6 +692,9 @@ function updateTodayStats(increment = 1) {
     
     stats[today].done += increment;
     localStorage.setItem(DAILY_STATS_KEY, JSON.stringify(stats));
+    
+    // Синхронизация с сервером
+    syncManager.syncToRemote();
     
     return stats[today];
 }
@@ -379,7 +742,6 @@ function nextCard() {
         return;
     }
     
-    // Сохраняем текущую карточку в историю
     if (currentCard) {
         cardHistory.push(currentCard);
     }
@@ -393,12 +755,10 @@ function nextCard() {
 function goToPreviousCard() {
     if (cardHistory.length === 0) return;
     
-    // Возвращаем текущую карточку в начало очереди
     if (currentCard) {
         sessionQueue.unshift(currentCard);
     }
     
-    // Берем предыдущую карточку из истории
     currentCard = cardHistory.pop();
     isCardFlipped = false;
     updateBackButton();
