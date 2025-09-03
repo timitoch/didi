@@ -32,7 +32,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+
             overflow-x: hidden;
         }
 
@@ -734,4 +734,61 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Стили для сообщения ожидания */
+.waiting-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    height: 300px;
+    text-align: center;
+    color: var(--text-dark);
+}
+
+.waiting-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.waiting-message h3 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: var(--text-dark);
+}
+
+.waiting-message p {
+    font-size: 16px;
+    color: var(--text-light);
+    line-height: 1.5;
+    margin-bottom: 25px;
+    max-width: 400px;
+}
+
+.check-again-btn {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.check-again-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
 }
