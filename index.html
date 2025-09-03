@@ -503,6 +503,17 @@ uploadArea.addEventListener('click', () => {
     fileInput.click();
 });
 
+reloadFileBtn.addEventListener('click', () => {
+    trainerContainer.classList.add('hidden');
+    uploadContainer.classList.remove('hidden');
+    
+    // Сбрасываем счетчики и историю для новой сессии
+    sessionQueue = [];
+    cardHistory = [];
+    currentCard = null;
+    window.sessionStats = { new: 0, due: 0, done: 0 };
+    updateStatsUI();
+});
 
 let fullDeck = [];
 let sessionQueue = [];
@@ -579,6 +590,8 @@ window.addEventListener('load', loadProgress);
 
 function handleFile(file) {
     if (!file) return;
+
+    
     
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
         alert('Пожалуйста, выберите Excel файл (.xlsx или .xls)');
