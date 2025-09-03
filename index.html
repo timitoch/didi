@@ -535,17 +535,27 @@ backBtn.addEventListener('click', () => {
     currentCard = lastCardState.card;
     const { rating, isNew } = lastCardState;
 
-    // "Отматываем" счетчик "Изучено сегодня", если оценка была >= 3
+    // "Откатываем" счетчик "Изучено сегодня", если оценка была >= 3
     if (rating >= 3) {
         const updatedStats = updateTodayStats(-1);
         window.sessionStats.done = updatedStats.done;
     }
     
-    // "Отматываем" счетчик в зависимости от типа слова
+    // "Откатываем" счетчик в зависимости от типа слова
     if (isNew) {
         window.sessionStats.new = Math.max(0, window.sessionStats.new + 1);
     } else {
         window.sessionStats.due = Math.max(0, window.sessionStats.due + 1);
+    }
+    
+    // "Откатываем" счетчик "Освоено", если предыдущая оценка была 5 или выше
+    if (rating >= 5) {
+        let masteredWords = JSON.parse(localStorage.getItem('masteredWords')) || {};
+        if (masteredWords[currentCard.id]) {
+            delete masteredWords[currentCard.id];
+            localStorage.setItem('masteredWords', JSON.stringify(masteredWords));
+            updateMasteredCount();
+        }
     }
 
     // Обновляем интерфейс
@@ -971,25 +981,22 @@ function previewNextReviewDate(card, rating) {
 }
 
 function updateMasteredWords(cardId, rating) {
-    const now = new Date();
-    const saved = localStorage.getItem(MASTERED_KEY);
-    let mastered = saved ? JSON.parse(saved) : {};
+    let masteredWords = JSON.parse(localStorage.getItem('masteredWords')) || {};
     
-    if (rating === 5) {
-        // Помню - 12 дней
-        mastered[cardId] = {
-            expires: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000).toISOString(),
-            rating: 5
-        };
-    } else if (rating === 6) {
-        // Отлично - 21 день
-        mastered[cardId] = {
-            expires: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000).toISOString(),
-            rating: 6
-        };
+    // Если слово освоено (оценка 5 или выше), добавляем его в список освоенных
+    if (rating >= 5) {
+        if (!masteredWords[cardId]) {
+            masteredWords[cardId] = true;
+        }
+    } else {
+        // Если оценка ниже 5, удаляем из освоенных
+        if (masteredWords[cardId]) {
+            delete masteredWords[cardId];
+        }
     }
-    
-    localStorage.setItem(MASTERED_KEY, JSON.stringify(mastered));
+
+    localStorage.setItem('masteredWords', JSON.stringify(masteredWords));
+    updateMasteredCount();
 }
 
 function updateMasteredCount() {
