@@ -115,11 +115,12 @@
             <button class="rating-btn rating-btn-5" data-rating="5">✅ Помню<br><small>12 дней</small></button>
             <button class="rating-btn rating-btn-6" data-rating="6">⭐ Отлично<br><small>21 день</small></button>
         </div>
+    </div>
 
-        <div id="session-end" class="hidden session-end-message">
-            <h2>🎉 Сессия завершена!</h2>
-            <p>Вы отлично поработали. Зайдите позже, чтобы повторить слова.</p>
-        </div>
+    <div id="session-end" class="hidden session-end-message">
+        <h2>🎉 Сессия завершена!</h2>
+        <p id="end-message-text">Вы отлично поработали. Зайдите позже, чтобы повторить слова.</p>
+        <button id="restart-btn" class="action-btn hidden">Начать заново</button>
     </div>
 </div>
 
@@ -501,6 +502,7 @@ uploadArea.addEventListener('drop', (e) => {
 uploadArea.addEventListener('click', () => {
     fileInput.click();
 });
+
 
 let fullDeck = [];
 let sessionQueue = [];
@@ -1020,23 +1022,24 @@ function updateMasteredCount() {
 }
 
 function endSession() {
-    // Скрываем карточку и кнопки, но оставляем остальной интерфейс видимым
+    // Скрываем только карточку и кнопки, оставляя счетчики видимыми
     cardContainer.classList.add('hidden');
     ratingContainer.classList.add('hidden');
+    
+    // Показываем сообщение о завершении сессии
     sessionEndElement.classList.remove('hidden');
 
-    const now = new Date();
+    const endMessageText = document.getElementById('end-message-text');
+    const restartBtn = document.getElementById('restart-btn');
+    
     // Ищем все слова, которые нужно будет повторить в будущем
-    const futureCards = fullDeck.filter(card => new Date(card.nextReviewDate) > now);
+    const futureCards = fullDeck.filter(card => new Date(card.nextReviewDate) > new Date());
 
     if (futureCards.length > 0) {
-        // Находим самое ближайшее слово для повторения
-        futureCards.sort((a, b) => new Date(a.nextReviewDate) - new Date(b.nextReviewDate));
-        const nextCard = futureCards[0];
-        const nextReviewDate = new Date(nextCard.nextReviewDate);
+        // Если слова есть, показываем сообщение о следующем повторении
+        const nextReviewDate = new Date(Math.min(...futureCards.map(card => new Date(card.nextReviewDate))));
+        const diffMinutes = Math.ceil((nextReviewDate - new Date()) / (1000 * 60));
         
-        const diffMinutes = Math.ceil((nextReviewDate - now) / (1000 * 60));
-
         let timeToNext = '';
         if (diffMinutes < 60) {
             timeToNext = `примерно через ${diffMinutes} мин.`;
@@ -1046,9 +1049,12 @@ function endSession() {
             timeToNext = `примерно через ${Math.round(diffMinutes / 1440)} д.`;
         }
         
-        sessionEndElement.querySelector('p').textContent = `Вы отлично поработали! Следующее повторение ${timeToNext}`;
+        endMessageText.textContent = `Вы отлично поработали! Следующее повторение ${timeToNext}`;
+        restartBtn.classList.add('hidden'); // Скрываем кнопку
     } else {
-        sessionEndElement.querySelector('p').textContent = 'Поздравляем! Вы выучили все слова.';
+        // Если слова закончились, показываем сообщение и кнопку
+        endMessageText.textContent = 'Поздравляем! Вы выучили все слова.';
+        restartBtn.classList.remove('hidden'); // Показываем кнопку
     }
 }
 
