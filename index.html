@@ -515,6 +515,7 @@ reloadFileBtn.addEventListener('click', () => {
     updateStatsUI();
 });
 
+
 let fullDeck = [];
 let sessionQueue = [];
 let currentCard = null;
@@ -537,52 +538,47 @@ backBtn.addEventListener('click', () => {
     if (cardHistory.length === 0) {
         return;
     }
-    
-    // Возвращаем текущую карточку в начало очереди
-    if (currentCard) {
-        sessionQueue.unshift(currentCard);
-    }
 
-    // Извлекаем состояние предыдущей карточки из истории
     const lastCardState = cardHistory.pop();
     currentCard = lastCardState.card;
-    const { rating, isNew } = lastCardState;
+    const { rating, isNew, cardId } = lastCardState;
+    
+    // Возвращаем карточку в начало очереди для повторного изучения
+    sessionQueue.unshift(currentCard);
 
-    // "Откатываем" счетчик "Изучено сегодня", если оценка была >= 3
+    // "Откатываем" счетчики
     if (rating >= 3) {
         const updatedStats = updateTodayStats(-1);
         window.sessionStats.done = updatedStats.done;
     }
     
-    // "Откатываем" счетчик в зависимости от типа слова
     if (isNew) {
         window.sessionStats.new = Math.max(0, window.sessionStats.new + 1);
     } else {
         window.sessionStats.due = Math.max(0, window.sessionStats.due + 1);
     }
     
-    // "Откатываем" счетчик "Освоено", если предыдущая оценка была 5 или выше
+    // ВСТАВЬТЕ ЭТОТ БЛОК СЮДА
     if (rating >= 5) {
-        let masteredWords = JSON.parse(localStorage.getItem('masteredWords')) || {};
-        if (masteredWords[currentCard.id]) {
-            delete masteredWords[currentCard.id];
-            localStorage.setItem('masteredWords', JSON.stringify(masteredWords));
+        const masteredWords = JSON.parse(localStorage.getItem(MASTERED_KEY) || '{}');
+        if (masteredWords[cardId]) {
+            delete masteredWords[cardId];
+            localStorage.setItem(MASTERED_KEY, JSON.stringify(masteredWords));
             updateMasteredCount();
         }
     }
+    // КОНЕЦ БЛОКА
 
-    // Обновляем интерфейс
     updateStatsUI();
     updateBackButton();
     displayCard();
     
-    // Убеждаемся, что экран завершения сессии скрыт
     if (!sessionEndElement.classList.contains('hidden')) {
         sessionEndElement.classList.add('hidden');
         cardContainer.classList.remove('hidden');
         ratingContainer.classList.remove('hidden');
     }
-
+    
     saveProgress();
 });
 
@@ -590,8 +586,6 @@ window.addEventListener('load', loadProgress);
 
 function handleFile(file) {
     if (!file) return;
-
-    
     
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
         alert('Пожалуйста, выберите Excel файл (.xlsx или .xls)');
@@ -796,13 +790,13 @@ function updateStatsUI() {
 }
 
 // Обновленная функция nextCard с проверкой готовности
+// ...
+// ...
 function nextCard() {
-    // Сначала проверяем, есть ли карточки готовые к изучению
     if (sessionQueue.length === 0) {
         if (checkSessionCompletion()) {
             return;
         }
-        // Если сессия не завершена, но нет карточек - перезапускаем
         const readyCards = getCardsReadyForReview();
         if (readyCards.length > 0) {
             sessionQueue = [...readyCards].sort(() => Math.random() - 0.5);
@@ -810,10 +804,6 @@ function nextCard() {
             endSession();
             return;
         }
-    }
-    
-    if (currentCard) {
-        cardHistory.push(currentCard);
     }
     
     currentCard = sessionQueue.shift();
@@ -904,12 +894,24 @@ function flipCard() {
 function handleRating(event) {
     if (!event.target.matches('.rating-btn')) return;
 
+    // Отключаем все кнопки оценки сразу
+const ratingButtons = document.querySelectorAll('.rating-btn');
+ratingButtons.forEach(btn => btn.disabled = true);
+
     const rating = parseInt(event.target.dataset.rating, 10);
     const isNew = currentCard.interval === 0;
 
-    if (rating >= 5) {
-        updateMasteredWords(currentCard.id, rating);
-    }
+    // Сохраняем состояние карточки в историю ПЕРЕД обновлением
+    const cardState = {
+        card: { ...currentCard }, // Создаем копию объекта
+        rating: rating,
+        isNew: isNew,
+        cardId: currentCard.id
+    };
+    cardHistory.push(cardState);
+
+    // Добавляем эту строку: она обновляет список освоенных слов
+    updateMasteredWords(currentCard.id, rating);
 
     updateCardInterval(rating);
     
@@ -925,20 +927,13 @@ function handleRating(event) {
     }
 
     updateStatsUI();
-    updateMasteredCount();
     saveProgress();
-
-    // Сохраняем состояние карточки перед тем, как перейти к следующей
-    const cardState = {
-        card: currentCard,
-        rating: rating,
-        isNew: isNew
-    };
-    cardHistory.push(cardState);
     
-    setTimeout(() => {
-        nextCard();
-    }, 300);
+setTimeout(() => {
+    nextCard();
+    // Включаем кнопки после того, как новая карточка отобразится
+    ratingButtons.forEach(btn => btn.disabled = false);
+}, 300);
 }
 
 function updateCardInterval(rating) {
@@ -996,13 +991,13 @@ function previewNextReviewDate(card, rating) {
 }
 
 function updateMasteredWords(cardId, rating) {
-    let masteredWords = JSON.parse(localStorage.getItem('masteredWords')) || {};
+    let masteredWords = JSON.parse(localStorage.getItem(MASTERED_KEY) || '{}');
     
     // Если слово освоено (оценка 5 или выше), добавляем его в список освоенных
     if (rating >= 5) {
-        if (!masteredWords[cardId]) {
-            masteredWords[cardId] = true;
-        }
+        masteredWords[cardId] = {
+            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        };
     } else {
         // Если оценка ниже 5, удаляем из освоенных
         if (masteredWords[cardId]) {
@@ -1010,7 +1005,7 @@ function updateMasteredWords(cardId, rating) {
         }
     }
 
-    localStorage.setItem('masteredWords', JSON.stringify(masteredWords));
+    localStorage.setItem(MASTERED_KEY, JSON.stringify(masteredWords));
     updateMasteredCount();
 }
 
@@ -1021,7 +1016,7 @@ function updateMasteredCount() {
     
     // Удаляем истекшие записи
     for (const [cardId, data] of Object.entries(mastered)) {
-        if (new Date(data.expires) <= now) {
+        if (data && new Date(data.expires) <= now) {
             delete mastered[cardId];
         }
     }
@@ -1045,6 +1040,9 @@ function endSession() {
     const endMessageText = document.getElementById('end-message-text');
     const restartBtn = document.getElementById('restart-btn');
     
+    // Делаем кнопку "Начать заново" видимой всегда при завершении сессии
+    restartBtn.classList.remove('hidden');
+
     // Ищем все слова, которые нужно будет повторить в будущем
     const futureCards = fullDeck.filter(card => new Date(card.nextReviewDate) > new Date());
 
@@ -1063,11 +1061,9 @@ function endSession() {
         }
         
         endMessageText.textContent = `Вы отлично поработали! Следующее повторение ${timeToNext}`;
-        restartBtn.classList.add('hidden'); // Скрываем кнопку
     } else {
-        // Если слова закончились, показываем сообщение и кнопку
+        // Если слова закончились, показываем сообщение
         endMessageText.textContent = 'Поздравляем! Вы выучили все слова.';
-        restartBtn.classList.remove('hidden'); // Показываем кнопку
     }
 }
 
