@@ -632,19 +632,3 @@
     font-weight: 700; /* Делаем жирным */
     color: var(--text-primary); /* Убедитесь, что цвет контрастен */
 }
-
-/* Выделение слов в примерах по родам */
-.example .highlight-masculine {
-    color: var(--masculine-color);
-    font-weight: 700;
-}
-
-.example .highlight-feminine {
-    color: var(--feminine-color);
-    font-weight: 700;
-}
-
-.example .highlight-neuter {
-    color: var(--neuter-color);
-    font-weight: 700;
-}
