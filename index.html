@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Words Trainer</title>
+    <script src="https://js.puter.com/v2/"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-database-compat.min.js"></script>
@@ -73,10 +74,12 @@
     </div>
 
     <div id="trainer-container" class="hidden">
+        
         <div class="trainer-header">
             <div class="header-left">
                 <button id="back-btn" class="back-btn" title="Предыдущее слово">←</button>
                 <button id="reload-file-btn" class="reload-file-btn" title="Обновить файл">📁</button>
+                <button id="toggle-speech-btn" class="toggle-speech-btn" title="Включить/выключить озвучивание">🔇</button>
             </div>
             <div class="header-center">
                 
@@ -874,6 +877,7 @@ function displayCard() {
         genderClass = 'neuter';
     }
     
+    
     let additionalInfo = '';
     if (currentCard.additionalInfo1) {
         additionalInfo += `<div class="additional-info">${currentCard.additionalInfo1}</div>`;
@@ -895,19 +899,57 @@ function displayCard() {
         const highlightedExample = highlightWordsInExample(currentCard.example3, formsToHighlight);
         examples += `<div class="example">${highlightedExample}</div>`;
     }
+
+    // Добавьте этот код сразу после `document.getElementById('card-inner').addEventListener('click', flipCard);`
+const audioBtn = document.getElementById('play-audio-btn');
+if (audioBtn) {
+    audioBtn.classList.remove('hidden');
+    audioBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Это важно, чтобы избежать переворачивания карточки
+        const wordToSpeak = currentCard.german.replace(/(der|die|das)\s*/i, '').trim();
+        speakGermanWord(wordToSpeak);
+    });
+}
     
     cardContainer.innerHTML = `
-        <div class="card-inner" id="card-inner">
-            <div class="card-face card-front">
+    <div class="card-inner" id="card-inner">
+        <div class="card-face card-front">
+            <div class="german-word-container">
                 <div class="german-word ${genderClass}">${currentCard.german}</div>
-                ${additionalInfo}
-                ${examples}
+                <button id="play-audio-btn" class="audio-btn hidden" title="Озвучить слово">🔊</button>
             </div>
-            <div class="card-face card-back">
-                <div class="translation">${currentCard.translation}</div>
-            </div>
+            ${additionalInfo}
+            ${examples}
         </div>
-    `;
+        <div class="card-face card-back">
+            <div class="translation">${currentCard.translation}</div>
+        </div>
+    </div>
+`;
+
+    document.getElementById('card-inner').addEventListener('click', flipCard);
+
+        // --- НОВЫЙ КОД ДЛЯ ОЗВУЧИВАНИЯ ---
+        let textToSpeak = currentCard.german; // Начинаем с немецкого слова
+
+        // Добавляем дополнительные формы глагола/информацию, если они есть
+        if (currentCard.additionalInfo1) {
+            textToSpeak += `. ${currentCard.additionalInfo1}`;
+        }
+
+        // Добавляем примеры предложений, если они есть
+        if (currentCard.example1) {
+            textToSpeak += `. ${currentCard.example1}`;
+        }
+        if (currentCard.example2) {
+            textToSpeak += `. ${currentCard.example2}`;
+        }
+        if (currentCard.example3) {
+            textToSpeak += `. ${currentCard.example3}`;
+        }
+
+        // Теперь озвучиваем всю собранную строку
+        speakGermanWord(textToSpeak);
     
     document.getElementById('card-inner').addEventListener('click', flipCard);
 }
@@ -958,6 +1000,62 @@ function flipCard() {
         isCardFlipped = false;
     }
 }
+
+// --- НОВЫЙ КОД ДЛЯ ОЗВУЧИВАНИЯ ---
+let speechEnabled = false; // По умолчанию озвучка выключена
+
+// Функция для включения/выключения озвучивания
+function toggleSpeech() {
+    speechEnabled = !speechEnabled;
+    const toggleButton = document.getElementById('toggle-speech-btn');
+    if (toggleButton) {
+        if (speechEnabled) {
+            toggleButton.textContent = '🔊'; // Иконка включенного звука
+            toggleButton.title = 'Выключить озвучивание';
+            // Если карточка уже отображена, можно сразу озвучить её
+            if (currentCard) {
+                speakGermanWord(currentCard.german);
+            }
+        } else {
+            toggleButton.textContent = '🔇'; // Иконка выключенного звука
+            toggleButton.title = 'Включить озвучивание';
+        }
+    }
+}
+
+function speakGermanWord(text) {
+    if (!speechEnabled) return; // Выходим, если озвучка выключена
+
+    // Используем ваш существующий код для озвучивания
+    puter.ai.txt2speech(text, "de-DE")
+        .then((audio) => {
+            audio.play();
+        })
+        .catch(error => {
+            console.error("Ошибка озвучивания:", error);
+        });
+}
+
+// Переименуем функцию, чтобы она отражала её новую роль
+let currentAudio = null;
+
+async function createGermanAudio(text) {
+    try {
+        const audio = await puter.ai.txt2speech(text, "de-DE");
+        return audio;
+    } catch (error) {
+        console.error("Ошибка озвучивания:", error);
+        return null;
+    }
+}
+
+// Привязываем обработчик события к кнопке после загрузки DOM
+document.addEventListener('DOMContentLoaded', () => {
+    const toggleButton = document.getElementById('toggle-speech-btn');
+    if (toggleButton) {
+        toggleButton.addEventListener('click', toggleSpeech);
+    }
+});
 
 function handleRating(event) {
     if (!event.target.matches('.rating-btn')) return;
