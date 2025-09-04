@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Words Trainer</title>
-    <script src="https://js.puter.com/v2/"></script>
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=i8NuynN8"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-database-compat.min.js"></script>
@@ -816,6 +816,10 @@ function nextCard() {
     isCardFlipped = false;
     updateBackButton();
     displayCard();
+    
+    if (speechEnabled) {
+        speakGermanWord(currentCard.german);
+    }
 }
 
 function goToPreviousCard() {
@@ -1024,16 +1028,18 @@ function toggleSpeech() {
 }
 
 function speakGermanWord(text) {
-    if (!speechEnabled) return; // Выходим, если озвучка выключена
+    if (!speechEnabled) return;
 
-    // Используем ваш существующий код для озвучивания
-    puter.ai.txt2speech(text, "de-DE")
-        .then((audio) => {
-            audio.play();
-        })
-        .catch(error => {
-            console.error("Ошибка озвучивания:", error);
+    // Проверяем, загружена ли библиотека ResponsiveVoice
+    if (typeof responsiveVoice !== 'undefined') {
+        responsiveVoice.speak(text, "Deutsch Male", {
+            pitch: 1.2, // Можно настроить высоту голоса
+            rate: 1.0, // Можно настроить скорость
+            volume: 1 // Громкость
         });
+    } else {
+        console.error("ResponsiveVoice.js не загружен.");
+    }
 }
 
 // Переименуем функцию, чтобы она отражала её новую роль
