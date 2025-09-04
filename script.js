@@ -27,6 +27,7 @@ const doneCountEl = document.getElementById('done-count');
 const masteredNumberEl = document.getElementById('mastered-number');
 const uploadArea = document.getElementById('upload-area');
 const resetButton = document.getElementById('reset-progress-btn');
+const progressBar = document.getElementById('progress-bar'); // ►►► НОВАЯ ССЫЛКА НА ЭЛЕМЕНТ
 
 // Sync UI Elements
 const createSyncBtn = document.getElementById('create-sync-btn');
@@ -621,10 +622,24 @@ function startSession() {
     }
 }
 
+// ►►► НОВАЯ ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ ПРОГРЕСС-БАРА
+function updateProgressBar() {
+    if (!window.sessionStats || window.sessionStats.new === 0) {
+        progressBar.style.width = '0%';
+        return;
+    }
+    const totalWords = window.sessionStats.new;
+    const studiedToday = window.sessionStats.done;
+    const percentage = (studiedToday / totalWords) * 100;
+    progressBar.style.width = `${Math.min(percentage, 100)}%`;
+}
+
+
 function updateStatsUI() {
     newCountEl.textContent = window.sessionStats.new;
     dueCountEl.textContent = window.sessionStats.due;
     doneCountEl.textContent = window.sessionStats.done;
+    updateProgressBar(); // ►►► ВЫЗЫВАЕМ ОБНОВЛЕНИЕ ПРОГРЕСС-БАРА
 }
 
 function nextCard() {
@@ -638,7 +653,6 @@ function nextCard() {
         }
     }
     
-    // Clear translation before showing next card to prevent "flickering"
     cardTranslation.textContent = ''; 
 
     currentCard = sessionQueue.shift();
@@ -682,10 +696,8 @@ function displayCard() {
     const regex = smartPatterns.length ? new RegExp(`\\b(${[...new Set(smartPatterns)].join('|')})\\b`, 'gi') : null;
     const highlight = (text) => regex ? text.replace(regex, '<strong>$&</strong>') : text;
 
-    // Update DOM content
     cardGermanWord.className = `german-word ${currentCard.gender || ''}`;
     cardGermanWord.textContent = currentCard.german;
-    // cardTranslation.textContent = currentCard.translation; // Translation is set only when flipped
 
     cardAdditionalInfo.innerHTML = 
         (currentCard.additionalInfo1 ? `<div class="additional-info">${currentCard.additionalInfo1}</div>` : '') +
@@ -705,9 +717,9 @@ function flipCard() {
     isCardFlipped = !isCardFlipped;
     cardInner.classList.toggle('is-flipped');
     if (isCardFlipped) {
-        cardTranslation.textContent = currentCard.translation; // Set translation when flipped
+        cardTranslation.textContent = currentCard.translation;
     } else {
-        cardTranslation.textContent = ''; // Clear translation when flipped back (optional, but good for consistency)
+        cardTranslation.textContent = '';
     }
 }
 
@@ -725,7 +737,7 @@ function toggleSpeech() {
     if (toggleExamplesSpeechBtn) {
         toggleExamplesSpeechBtn.disabled = !speechEnabled;
         if (speechEnabled) {
-            speakExamplesEnabled = true; // Включаем озвучивание примеров по умолчанию
+            speakExamplesEnabled = true;
             toggleExamplesSpeechBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-play"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
             toggleExamplesSpeechBtn.title = 'Выключить озвучивание примеров';
         } else {
@@ -761,7 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (toggleExamplesSpeechButton) {
-        toggleExamplesSpeechButton.disabled = true; // Изначально отключено
+        toggleExamplesSpeechButton.disabled = true;
         toggleExamplesSpeechButton.addEventListener('click', () => {
             speakExamplesEnabled = !speakExamplesEnabled;
             toggleExamplesSpeechButton.innerHTML = speakExamplesEnabled
@@ -816,9 +828,9 @@ function updateCardInterval(rating) {
     const now = new Date();
 
     if (rating < 3) {
-        interval = 0; // Reset progress
+        interval = 0;
         currentCard.nextReviewDate = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
-        sessionQueue.push(currentCard); // Re-add to the end of the queue for this session
+        sessionQueue.push(currentCard);
     } else {
         easeFactor = easeFactor + (0.1 - (5 - rating) * 0.08 - (5 - rating) * 0.02);
         if (easeFactor < MIN_EASE) easeFactor = MIN_EASE;
@@ -891,7 +903,6 @@ function endSession() {
     }
 }
 
-// Auto-sync and connection handling
 function setupAutoSync() {
     window.addEventListener('online', () => syncManager.connectToExistingSync());
     window.addEventListener('offline', () => syncManager.updateSyncStatus('Оффлайн режим', syncManager.icons.error));
