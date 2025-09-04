@@ -156,6 +156,7 @@
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
+            text-align: center;
             margin-top: 12px;
             transition: all 0.15s ease;
             display: block; /* Сделано блочным для новой кнопки */
