@@ -66,7 +66,7 @@
         .header-left {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 16px; /* Увеличили расстояние между группами кнопок */
         }
 
         .header-center {
@@ -87,8 +87,14 @@
             margin: 0;
         }
 
-        /* Кнопки */
-        .back-btn, .reload-file-btn {
+        /* Группы кнопок */
+        .button-group {
+            display: flex;
+            gap: 8px; /* Расстояние между кнопками внутри группы */
+        }
+
+        /* Новый стиль для иконочных кнопок */
+        .icon-btn {
             width: 44px;
             height: 44px;
             background: var(--card-bg);
@@ -97,20 +103,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
             color: var(--text-primary);
             cursor: pointer;
             transition: all 0.15s ease;
             box-shadow: var(--shadow-sm);
+            padding: 0; /* Убираем padding, чтобы иконки были центрированы */
         }
 
-        .back-btn:hover, .reload-file-btn:hover {
+        .icon-btn:hover {
             background: var(--bg-color);
         }
 
-        .back-btn:disabled {
+        .icon-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .icon-btn svg {
+            width: 20px;
+            height: 20px;
         }
 
         /* Счетчик */
@@ -134,6 +145,10 @@
             cursor: pointer;
             transition: all 0.15s ease;
             background: var(--bg-color);
+            display: flex; /* Для выравнивания иконки и текста */
+            flex-direction: column; /* Иконка сверху, текст снизу */
+            align-items: center;
+            justify-content: center;
         }
 
         .upload-area:hover {
@@ -145,6 +160,12 @@
             color: var(--text-secondary);
             font-size: 14px;
             font-weight: 500;
+            margin-top: 10px; /* Расстояние между иконкой и текстом */
+        }
+
+        .upload-area svg {
+            color: var(--text-secondary);
+            margin-bottom: 8px;
         }
 
         .file-input-button {
@@ -159,7 +180,10 @@
             text-align: center;
             margin-top: 12px;
             transition: all 0.15s ease;
-            display: block; /* Сделано блочным для новой кнопки */
+            display: flex; /* Для иконки и текста */
+            align-items: center;
+            justify-content: center;
+            gap: 8px; /* Расстояние между иконкой и текстом */
             width: 100%; /* Растянуто на 100% */
         }
 
@@ -183,7 +207,10 @@
             cursor: pointer;
             margin-top: 12px;
             transition: all 0.15s ease;
-            display: block;
+            display: flex; /* Для иконки и текста */
+            align-items: center;
+            justify-content: center;
+            gap: 8px; /* Расстояние между иконкой и текстом */
             width: 100%;
         }
 
@@ -381,6 +408,16 @@
             font-weight: 600;
             color: var(--success-color);
             margin-bottom: 12px;
+            display: flex; /* Для выравнивания иконки и текста */
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .session-end-message h2 svg {
+            width: 24px;
+            height: 24px;
+            color: var(--success-color);
         }
 
         .restart-btn {
@@ -435,6 +472,9 @@
             cursor: pointer;
             font-size: 12px;
             transition: all 0.15s ease;
+            display: flex; /* Для иконки и текста */
+            align-items: center;
+            gap: 6px; /* Расстояние между иконкой и текстом */
         }
 
         .sync-btn:hover {
@@ -444,6 +484,12 @@
         .sync-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        .sync-btn svg {
+            width: 16px; /* Меньший размер для иконок в кнопках */
+            height: 16px;
+            stroke-width: 2;
         }
 
         .sync-code-display {
@@ -496,6 +542,11 @@
         .sync-status-small {
             font-size: 16px;
             color: var(--text-primary);
+        }
+
+        .sync-status-small svg {
+            width: 18px;
+            height: 18px;
         }
 
         /* Сообщение ожидания */
@@ -609,13 +660,22 @@
         border: 1px solid #ddd;
         border-radius: 50%;
         color: #555;
-        font-size: 20px;
-        font-weight: bold;
-        line-height: 28px;
+        /* font-size: 20px; */ /* Заменяем на размер SVG */
+        /* font-weight: bold; */
+        /* line-height: 28px; */
+        display: flex; /* Для центрирования SVG */
+        align-items: center;
+        justify-content: center;
         text-align: center;
         cursor: pointer;
         transition: background-color 0.2s, color 0.2s;
         z-index: 10;
+        }
+
+        .back-to-trainer-btn svg {
+            width: 18px; /* Размер иконки */
+            height: 18px;
+            stroke-width: 2.5; /* Толщина линии для иконки "X" */
         }
 
         .back-to-trainer-btn:hover {
@@ -629,40 +689,6 @@
         }
 
         .example strong {
-    font-weight: 700; /* Делаем жирным */
-    color: var(--text-primary); /* Убедитесь, что цвет контрастен */
-}
-
-/* Кнопка для озвучки */
-.toggle-speech-btn {
-    width: 44px; /* Установите желаемый размер */
-    height: 44px; /* Высота, чтобы совпадала с другими кнопками */
-    padding: 0;
-    font-size: 20px;
-    line-height: 1;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background-color: var(--card-bg);
-    color: var(--text-color);
-    cursor: pointer;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-    display: flex; /* Используем flexbox для центрирования иконки */
-    justify-content: center;
-    align-items: center;
-    margin-left: 10px;
-}
-
-.toggle-speech-btn:hover {
-    background-color: var(--highlight-color);
-    border-color: var(--highlight-color);
-}
-
-.toggle-speech-btn:active {
-    background-color: var(--button-active-bg);
-}
-
-/* Измените расположение кнопок в шапке */
-.header-left {
-    display: flex;
-    align-items: center;
-}
+            font-weight: 700; /* Делаем жирным */
+            color: var(--text-primary); /* Убедитесь, что цвет контрастен */
+        }

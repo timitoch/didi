@@ -15,9 +15,12 @@
 <div class="container">
     
     <div id="upload-container">
-        <button id="back-to-trainer-btn" class="back-to-trainer-btn hidden" title="Вернуться к тренажеру">×</button>
+        <button id="back-to-trainer-btn" class="back-to-trainer-btn hidden" title="Вернуться к тренажеру">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
         <div class="upload-area" id="upload-area">
-            <p>📁 Перетащите Excel (.xlsx) файл сюда или нажмите кнопку ниже</p>
+            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload-cloud"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path><polyline points="16 16 12 12 8 16"></polyline></svg>
+            <p>Перетащите Excel (.xlsx) файл сюда или нажмите кнопку ниже</p>
             <small style="color: var(--text-light); margin-top: 10px; display: block;">
                 Формат: ID | Немецкое слово | Перевод | Дополнительная информация 1 (формы глагола) | Дополнительная информация 2 (падеж, приставка) | Пример 1 | Пример 2 | Пример 3
             </small>
@@ -25,22 +28,37 @@
         
         <div class="file-input-container">
             <label for="file-input" class="file-input-button">
-                📂 Выбрать файл
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder-plus"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+                Выбрать файл
             </label>
             <input type="file" id="file-input" accept=".xlsx,.xls" />
-            <button id="reset-progress-btn" class="reset-progress-btn">🗑️ Сбросить прогресс</button>
+            <button id="reset-progress-btn" class="reset-progress-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                Сбросить прогресс
+            </button>
         </div>
         
         <div class="sync-container">
             <div class="sync-status" id="sync-status">
-                <span id="sync-indicator">🔄</span>
+                <span id="sync-indicator">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.5 10a9 9 0 0 1 14.5 9.5M20.5 14a9 9 0 0 1-14.5-9.5"></path></svg>
+                </span>
                 <span id="sync-text">Синхронизация отключена</span>
             </div>
             
             <div class="sync-controls">
-                <button id="create-sync-btn" class="sync-btn">🔗 Создать код синхронизации</button>
-                <button id="join-sync-btn" class="sync-btn">📲 Подключиться по коду</button>
-                <button id="disconnect-sync-btn" class="sync-btn hidden">❌ Отключить синхронизацию</button>
+                <button id="create-sync-btn" class="sync-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    Создать код синхронизации
+                </button>
+                <button id="join-sync-btn" class="sync-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-share-2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                    Подключиться по коду
+                </button>
+                <button id="disconnect-sync-btn" class="sync-btn hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x-circle"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                    Отключить синхронизацию
+                </button>
             </div>
             
             <div id="sync-code-display" class="sync-code-display hidden">
@@ -76,16 +94,31 @@
         
         <div class="trainer-header">
             <div class="header-left">
-                <button id="back-btn" class="back-btn" title="Предыдущее слово">←</button>
-                <button id="reload-file-btn" class="reload-file-btn" title="Обновить файл">📁</button>
-                <button id="toggle-speech-btn" class="toggle-speech-btn" title="Включить/выключить озвучивание">🔇</button>
+                <div class="button-group">
+                    <button id="back-btn" class="icon-btn" title="Предыдущее слово">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-left"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    </button>
+                    <button id="reload-file-btn" class="icon-btn" title="Обновить файл">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    </button>
+                </div>
+                <div class="button-group">
+                    <button id="toggle-speech-btn" class="icon-btn" title="Включить/выключить озвучивание">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-volume-x"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                    </button>
+                    <button id="toggle-examples-speech-btn" class="icon-btn" title="Включить озвучивание примеров">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    </button>
+                </div>
             </div>
             <div class="header-center">
                 
             </div>
             <div class="header-right">
                 <div class="sync-status-small" id="sync-status-small">
-                    <span id="sync-indicator-small">🔄</span>
+                    <span id="sync-indicator-small">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-refresh-cw"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.5 10a9 9 0 0 1 14.5 9.5M20.5 14a9 9 0 0 1-14.5-9.5"></path></svg>
+                    </span>
                 </div>
                 <div class="mastered-count" id="mastered-count">
                     Освоено: <span id="mastered-number">0</span>
@@ -121,7 +154,10 @@
     </div>
 
     <div id="session-end" class="hidden session-end-message">
-        <h2>🎉 Сессия завершена!</h2>
+        <h2>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-8.8"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            Сессия завершена!
+        </h2>
         <p id="end-message-text">Вы отлично поработали. Зайдите позже, чтобы повторить слова.</p>
         <button id="restart-btn" class="action-btn hidden">Начать заново</button>
     </div>

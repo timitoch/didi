@@ -1,9 +1,9 @@
 const firebaseConfig = {
     apiKey: "AIzaSyDecNXBkdSPE7Vhl3RgbgwOcjLNvPcxsPw",
     authDomain: "wordlab-sync.firebaseapp.com",
-    databaseURL: "https://wordlab-sync-default-rtdb.europe-west1.firebasedatabase.app",
+    databaseURL: "https://wordlab-sync-default-rtdb.europe-west1.firebase database.app",
     projectId: "wordlab-sync",
-    storageBucket: "wordlab-sync.firebasestorage.app",
+    storageBucket: "wordlab-sync.firebase storage.app",
     messagingSenderId: "1095424207075",
     appId: "1:1095424207075:web:0c2e07e78066db3025fdd6"
 };
@@ -41,6 +41,12 @@ const syncText = document.getElementById('sync-text');
 const syncIndicator = document.getElementById('sync-indicator');
 const syncIndicatorSmall = document.getElementById('sync-indicator-small');
 const DAILY_STUDIED_WORDS_KEY = 'daily_studied_words_v3';
+
+const ICON_VOLUME_ON = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+const ICON_VOLUME_OFF = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-volume-x"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>`;
+const ICON_BOOK_OPEN = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>`;
+const ICON_BOOK = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V6H6.5A2.5 2.5 0 0 0 4 8.5v11z"></path></svg>`;
+
 
 class SyncManager {
     constructor() {
@@ -686,9 +692,7 @@ function nextCard() {
     updateBackButton();
     displayCard();
     
-    if (speechEnabled) {
-        speakGermanWord(currentCard.german);
-    }
+    speakCurrentCard();
 }
 
 function goToPreviousCard() {
@@ -719,16 +723,13 @@ function updateBackButton() {
 function displayCard() {
     ratingContainer.classList.remove('hidden');
 
-    // 1. Получаем все формы слова, включая единственное и множественное число
     let formsToHighlight = [];
 
-    // Извлекаем все слова из поля "german", разделяя по запятой и пробелу
     if (currentCard.german) {
         const nounForms = currentCard.german.toLowerCase().split(/,\s*|\s+/);
         formsToHighlight = formsToHighlight.concat(nounForms);
     }
 
-    // Добавляем все формы из поля additionalInfo1 (если они есть)
     if (currentCard.additionalInfo1) {
         const additionalForms = currentCard.additionalInfo1.match(/\w+/g);
         if (additionalForms) {
@@ -736,11 +737,9 @@ function displayCard() {
         }
     }
     
-    // Удаляем дубликаты и пустые строки, и убираем артикли (der, die, das)
     formsToHighlight = [...new Set(formsToHighlight)]
                        .filter(word => word && word !== 'der' && word !== 'die' && word !== 'das');
-
-    // 2. Создаем HTML для карточки, используя все найденные формы для выделения
+    
     let genderClass = '';
     if (currentCard.gender === 'masculine') {
         genderClass = 'masculine';
@@ -772,24 +771,12 @@ function displayCard() {
         const highlightedExample = highlightWordsInExample(currentCard.example3, formsToHighlight);
         examples += `<div class="example">${highlightedExample}</div>`;
     }
-
-    // Добавьте этот код сразу после `document.getElementById('card-inner').addEventListener('click', flipCard);`
-const audioBtn = document.getElementById('play-audio-btn');
-if (audioBtn) {
-    audioBtn.classList.remove('hidden');
-    audioBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Это важно, чтобы избежать переворачивания карточки
-        const wordToSpeak = currentCard.german.replace(/(der|die|das)\s*/i, '').trim();
-        speakGermanWord(wordToSpeak);
-    });
-}
     
     cardContainer.innerHTML = `
     <div class="card-inner" id="card-inner">
         <div class="card-face card-front">
             <div class="german-word-container">
                 <div class="german-word ${genderClass}">${currentCard.german}</div>
-                <button id="play-audio-btn" class="audio-btn hidden" title="Озвучить слово">🔊</button>
             </div>
             ${additionalInfo}
             ${examples}
@@ -801,30 +788,6 @@ if (audioBtn) {
 `;
 
     document.getElementById('card-inner').addEventListener('click', flipCard);
-
-        // --- НОВЫЙ КОД ДЛЯ ОЗВУЧИВАНИЯ ---
-        let textToSpeak = currentCard.german; // Начинаем с немецкого слова
-
-        // Добавляем дополнительные формы глагола/информацию, если они есть
-        if (currentCard.additionalInfo1) {
-            textToSpeak += `. ${currentCard.additionalInfo1}`;
-        }
-
-        // Добавляем примеры предложений, если они есть
-        if (currentCard.example1) {
-            textToSpeak += `. ${currentCard.example1}`;
-        }
-        if (currentCard.example2) {
-            textToSpeak += `. ${currentCard.example2}`;
-        }
-        if (currentCard.example3) {
-            textToSpeak += `. ${currentCard.example3}`;
-        }
-
-        // Теперь озвучиваем всю собранную строку
-        speakGermanWord(textToSpeak);
-    
-    document.getElementById('card-inner').addEventListener('click', flipCard);
 }
 
 function highlightWordsInExample(exampleText, wordsToHighlight) {
@@ -832,16 +795,13 @@ function highlightWordsInExample(exampleText, wordsToHighlight) {
         return exampleText;
     }
 
-        // Генерируем "умные" паттерны для регулярного выражения
     const smartPatterns = wordsToHighlight.flatMap(word => {
         const patterns = [word];
         
-        // Если слово оканчивается на 'en', добавляем паттерн с 'e' и 't'
         if (word.endsWith('en')) {
             const root = word.slice(0, -2);
             patterns.push(`${root}e`, `${root}t`);
         } 
-        // Если слово оканчивается на 'n', добавляем паттерн с 'e'
         else if (word.endsWith('n') && word.length > 2) {
             const root = word.slice(0, -1);
             patterns.push(`${root}e`);
@@ -850,13 +810,8 @@ function highlightWordsInExample(exampleText, wordsToHighlight) {
         return patterns.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     });
 
-    // Объединяем все уникальные паттерны в одну строку
     const regexPattern = [...new Set(smartPatterns)].join('|');
-
-    // Создаем регулярное выражение с границами слова и без учета регистра
     const regex = new RegExp(`\\b(${regexPattern})\\b`, 'gi');
-
-    // Заменяем все найденные совпадения, оборачивая их в тег <strong>
     const highlightedText = exampleText.replace(regex, `<strong>$&</strong>`);
 
     return highlightedText;
@@ -874,63 +829,111 @@ function flipCard() {
     }
 }
 
-// --- НОВЫЙ КОД ДЛЯ ОЗВУЧИВАНИЯ ---
-let speechEnabled = false; // По умолчанию озвучка выключена
+let speechEnabled = false; 
+let speakExamplesEnabled = false; 
 
-// Функция для включения/выключения озвучивания
 function toggleSpeech() {
     speechEnabled = !speechEnabled;
     const toggleButton = document.getElementById('toggle-speech-btn');
+    const toggleExamplesButton = document.getElementById('toggle-examples-speech-btn');
+
     if (toggleButton) {
-        if (speechEnabled) {
-            toggleButton.textContent = '🔊'; // Иконка включенного звука
-            toggleButton.title = 'Выключить озвучивание';
-            // Если карточка уже отображена, можно сразу озвучить её
-            if (currentCard) {
-                speakGermanWord(currentCard.german);
-            }
-        } else {
-            toggleButton.textContent = '🔇'; // Иконка выключенного звука
-            toggleButton.title = 'Включить озвучивание';
+        // Заменяем смайлики на SVG-иконки
+        toggleButton.innerHTML = speechEnabled ? ICON_VOLUME_ON : ICON_VOLUME_OFF;
+        toggleButton.title = speechEnabled ? 'Выключить озвучивание' : 'Включить озвучивание';
+    }
+    
+    // Новая логика для кнопки примеров
+    if (toggleExamplesButton) {
+        toggleExamplesButton.disabled = !speechEnabled;
+    }
+
+    if (!speechEnabled) {
+        speakExamplesEnabled = false;
+        if (toggleExamplesButton) {
+            // Заменяем смайлик на SVG-иконку
+            toggleExamplesButton.innerHTML = ICON_BOOK_OPEN; 
+            toggleExamplesButton.title = 'Включить озвучивание примеров';
         }
+    }
+
+    if (speechEnabled && currentCard) {
+        speakCurrentCard();
     }
 }
 
-function speakGermanWord(text) {
+function toggleExamplesSpeech() {
+    if (!speechEnabled) {
+        return;
+    }
+
+    speakExamplesEnabled = !speakExamplesEnabled;
+    const toggleExamplesButton = document.getElementById('toggle-examples-speech-btn');
+    if (toggleExamplesButton) {
+        // Заменяем смайлики на SVG-иконки
+        toggleExamplesButton.innerHTML = speakExamplesEnabled ? ICON_BOOK : ICON_BOOK_OPEN;
+        toggleExamplesButton.title = speakExamplesEnabled ? 'Выключить озвучивание примеров' : 'Включить озвучивание примеров';
+    }
+    if (currentCard) {
+        speakCurrentCard();
+    }
+}
+
+
+function speakCurrentCard() {
     if (!speechEnabled) return;
 
-    // Проверяем, загружена ли библиотека ResponsiveVoice
+    let textToSpeak = currentCard.german;
+
+    if (currentCard.additionalInfo1) {
+        textToSpeak += `. ${currentCard.additionalInfo1}`;
+    }
+
+    if (speakExamplesEnabled) {
+        if (currentCard.example1) {
+            textToSpeak += `. ${currentCard.example1}`;
+        }
+        if (currentCard.example2) {
+            textToSpeak += `. ${currentCard.example2}`;
+        }
+        if (currentCard.example3) {
+            textToSpeak += `. ${currentCard.example3}`;
+        }
+    }
+    
+    speakGermanWord(textToSpeak);
+}
+
+function speakGermanWord(text) {
     if (typeof responsiveVoice !== 'undefined') {
         responsiveVoice.speak(text, "Deutsch Male", {
-            pitch: 1.2, // Можно настроить высоту голоса
-            rate: 1.0, // Можно настроить скорость
-            volume: 1 // Громкость
+            pitch: 1.2,
+            rate: 1.0,
+            volume: 1
         });
     } else {
         console.error("ResponsiveVoice.js не загружен.");
     }
 }
 
-// Переименуем функцию, чтобы она отражала её новую роль
-let currentAudio = null;
-
-async function createGermanAudio(text) {
-    try {
-        const audio = await puter.ai.txt2speech(text, "de-DE");
-        return audio;
-    } catch (error) {
-        console.error("Ошибка озвучивания:", error);
-        return null;
-    }
-}
-
-// Привязываем обработчик события к кнопке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
-    const toggleButton = document.getElementById('toggle-speech-btn');
-    if (toggleButton) {
-        toggleButton.addEventListener('click', toggleSpeech);
+    const toggleSpeechButton = document.getElementById('toggle-speech-btn');
+    const toggleExamplesSpeechButton = document.getElementById('toggle-examples-speech-btn');
+
+    // Сделайте кнопку неактивной при загрузке
+    if (toggleExamplesSpeechButton) {
+        toggleExamplesSpeechButton.disabled = true;
+    }
+
+    if (toggleSpeechButton) {
+        toggleSpeechButton.addEventListener('click', toggleSpeech);
+    }
+
+    if (toggleExamplesSpeechButton) {
+        toggleExamplesSpeechButton.addEventListener('click', toggleExamplesSpeech);
     }
 });
+
 
 function handleRating(event) {
     if (!event.target.matches('.rating-btn')) return;
