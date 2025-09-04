@@ -126,13 +126,12 @@
 
         /* Счетчик */
         .mastered-count {
-            background: var(--bg-color);
-            padding: 6px 12px;
+
+            padding: 3px 5px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 500;
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
+
         }
 
         /* Область загрузки */
