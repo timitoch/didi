@@ -19,6 +19,28 @@
             --masculine-color: #3b82f6;
             --feminine-color: #ec4899;
             --neuter-color: #f59e0b;
+            
+            /* Новые цвета для кнопок рейтинга */
+            --rating-1-color: #ef4444;
+            --rating-2-color: #f97316;
+            --rating-3-color: #eab308;
+            --rating-4-color: #84cc16;
+            --rating-5-color: #22c55e;
+            --rating-6-color: #10b981;
+            
+            --rating-1-bg: #fef2f2;
+            --rating-2-bg: #fff7ed;
+            --rating-3-bg: #fefce8;
+            --rating-4-bg: #f7fee7;
+            --rating-5-bg: #f0fdf4;
+            --rating-6-bg: #ecfdf5;
+            
+            --rating-1-border: #fecaca;
+            --rating-2-border: #fed7aa;
+            --rating-3-border: #fef08a;
+            --rating-4-border: #d9f99d;
+            --rating-5-border: #bbf7d0;
+            --rating-6-border: #a7f3d0;
         }
 
         * {
@@ -334,36 +356,115 @@
             text-align: center;
         }
 
-        /* Кнопки оценки */
+        /* Обновленные кнопки оценки */
         .rating-buttons {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
+            gap: 10px;
             margin-top: 20px;
         }
 
         .rating-btn {
-            padding: 12px 8px;
-            border: none;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 500;
+            padding: 14px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.15s ease;
-            color: white;
-            min-height: 44px;
+            transition: all 0.2s ease;
+            min-height: 52px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1.3;
+            background: var(--card-bg);
+            color: var(--text-primary);
+        }
+
+        .rating-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
         }
 
         .rating-btn:active {
-            transform: scale(0.95);
+            transform: translateY(0);
         }
 
-        .rating-btn-1 { background: #dc2626; }
-        .rating-btn-2 { background: #ea580c; }
-        .rating-btn-3 { background: #ca8a04; }
-        .rating-btn-4 { background: #65a30d; }
-        .rating-btn-5 { background: #16a34a; }
-        .rating-btn-6 { background: #059669; }
+        .rating-btn small {
+            font-size: 11px;
+            font-weight: 500;
+            margin-top: 2px;
+            opacity: 0.8;
+        }
+
+        /* Настоящий градиент синих оттенков от темного к светлому */
+        .rating-btn-1 {
+            background: #dbeafe;
+            border-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        .rating-btn-1:hover {
+            background: #bfdbfe;
+            border-color: #1e40af;
+        }
+
+        .rating-btn-2 {
+            background: #e0f2fe;
+            border-color: #0ea5e9;
+            color: #0369a1;
+        }
+
+        .rating-btn-2:hover {
+            background: #bae6fd;
+            border-color: #0369a1;
+        }
+
+        .rating-btn-3 {
+            background: #e6fffa;
+            border-color: #14b8a6;
+            color: #0d9488;
+        }
+
+        .rating-btn-3:hover {
+            background: #ccfbf1;
+            border-color: #0d9488;
+        }
+
+        .rating-btn-4 {
+            background: #ecfdf5;
+            border-color: #10b981;
+            color: #047857;
+        }
+
+        .rating-btn-4:hover {
+            background: #d1fae5;
+            border-color: #047857;
+        }
+
+        .rating-btn-5 {
+            background: #f0fdf4;
+            border-color: #22c55e;
+            color: #15803d;
+        }
+
+        .rating-btn-5:hover {
+            background: #dcfce7;
+            border-color: #15803d;
+        }
+
+        .rating-btn-6 {
+            background: #f7fee7;
+            border-color: #65a30d;
+            color: #365314;
+        }
+
+        .rating-btn-6:hover {
+            background: #ecfccb;
+            border-color: #365314;
+        }
 
         /* Легенда */
         .gender-legend {
@@ -645,6 +746,16 @@
             .gender-legend {
                 flex-wrap: wrap;
                 gap: 12px;
+            }
+
+            .rating-btn {
+                font-size: 12px;
+                min-height: 48px;
+                padding: 12px 10px;
+            }
+
+            .rating-btn small {
+                font-size: 10px;
             }
         }
 

@@ -59,6 +59,13 @@ class SyncManager {
         this.syncRef = null;
         this.lastSyncTime = 0;
         this.syncDebounceTimer = null;
+
+        // SVG Icons for sync statuses
+        this.icons = {
+            success: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-8.8"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+            error: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-triangle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+            disconnected: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-link-2-off"><path d="M15 7h3a5 5 0 0 1 5 5 5 5 0 0 1-5 5h-3m-6 0H6a5 5 0 0 1-5-5 5 5 0 0 1 5-5h3"></path><line x1="8" y1="12" x2="16" y2="12"></line></svg>'
+        };
         
         this.loadSyncSettings();
         this.setupEventListeners();
@@ -103,7 +110,7 @@ class SyncManager {
             localStorage.setItem('sync_code', code);
             this.setupSyncListener();
             this.showSyncCode(code);
-            this.updateSyncStatus('Синхронизация активна', '🟢');
+            this.updateSyncStatus('Синхронизация активна', this.icons.success);
             
         } catch (error) {
             console.error('Ошибка создания синхронизации:', error);
@@ -151,7 +158,7 @@ class SyncManager {
             
             this.setupSyncListener();
             this.hideJoinSync();
-            this.updateSyncStatus('Синхронизация активна', '🟢');
+            this.updateSyncStatus('Синхронизация активна', this.icons.success);
             
         } catch (error) {
             console.error('Ошибка подключения к синхронизации:', error);
@@ -167,13 +174,13 @@ class SyncManager {
             
             if (snapshot.exists()) {
                 this.setupSyncListener();
-                this.updateSyncStatus('Синхронизация активна', '🟢');
+                this.updateSyncStatus('Синхронизация активна', this.icons.success);
             } else {
                 this.disconnectSync();
             }
         } catch (error) {
             console.error('Ошибка подключения к существующей синхронизации:', error);
-            this.updateSyncStatus('Ошибка синхронизации', '🔴');
+            this.updateSyncStatus('Ошибка синхронизации', this.icons.error);
         }
     }
     
@@ -189,7 +196,7 @@ class SyncManager {
                 
                 if (remoteTimestamp > this.lastSyncTime) {
                     this.mergeRemoteData(remoteData);
-                    this.updateSyncStatus('Синхронизировано', '🟢');
+                    this.updateSyncStatus('Синхронизировано', this.icons.success);
                     
                     if (fullDeck.length > 0) {
                         updateStatsUI();
@@ -220,7 +227,7 @@ class SyncManager {
         createSyncBtn.classList.remove('hidden');
         joinSyncBtn.classList.remove('hidden');
         
-        this.updateSyncStatus('Синхронизация отключена', '🔄');
+        this.updateSyncStatus('Синхронизация отключена', this.icons.disconnected);
     }
     
     showSyncCode(code) {
@@ -231,10 +238,10 @@ class SyncManager {
         joinSyncBtn.classList.add('hidden');
     }
     
-    updateSyncStatus(text, indicator) {
+    updateSyncStatus(text, iconHtml) {
         syncText.textContent = text;
-        syncIndicator.textContent = indicator;
-        syncIndicatorSmall.textContent = indicator;
+        syncIndicator.innerHTML = iconHtml;
+        syncIndicatorSmall.innerHTML = iconHtml;
     }
     
     getLocalData() {
@@ -317,16 +324,19 @@ class SyncManager {
             try {
                 await database.ref(`sync_codes/${this.currentSyncCode}/data`).set(this.getLocalData());
                 this.lastSyncTime = Date.now();
-                this.updateSyncStatus('Синхронизировано', '🟢');
+                this.updateSyncStatus('Синхронизировано', this.icons.success);
             } catch (error) {
                 console.error('Ошибка синхронизации:', error);
-                this.updateSyncStatus('Ошибка синхронизации', '🔴');
+                this.updateSyncStatus('Ошибка синхронизации', this.icons.error);
             }
         }, 1000); // Debounce Firebase writes
     }
 }
 
 const syncManager = new SyncManager();
+// Set initial disconnected status on load
+syncManager.updateSyncStatus('Синхронизация отключена', syncManager.icons.disconnected);
+
 
 // Event Listeners for Upload Area
 uploadArea.addEventListener('dragover', (e) => {
@@ -628,6 +638,9 @@ function nextCard() {
         }
     }
     
+    // Clear translation before showing next card to prevent "flickering"
+    cardTranslation.textContent = ''; 
+
     currentCard = sessionQueue.shift();
     isCardFlipped = false;
     cardInner.classList.remove('is-flipped');
@@ -672,7 +685,7 @@ function displayCard() {
     // Update DOM content
     cardGermanWord.className = `german-word ${currentCard.gender || ''}`;
     cardGermanWord.textContent = currentCard.german;
-    cardTranslation.textContent = currentCard.translation;
+    // cardTranslation.textContent = currentCard.translation; // Translation is set only when flipped
 
     cardAdditionalInfo.innerHTML = 
         (currentCard.additionalInfo1 ? `<div class="additional-info">${currentCard.additionalInfo1}</div>` : '') +
@@ -691,6 +704,11 @@ function displayCard() {
 function flipCard() {
     isCardFlipped = !isCardFlipped;
     cardInner.classList.toggle('is-flipped');
+    if (isCardFlipped) {
+        cardTranslation.textContent = currentCard.translation; // Set translation when flipped
+    } else {
+        cardTranslation.textContent = ''; // Clear translation when flipped back (optional, but good for consistency)
+    }
 }
 
 let speechEnabled = false;
@@ -706,7 +724,11 @@ function toggleSpeech() {
 
     if (toggleExamplesSpeechBtn) {
         toggleExamplesSpeechBtn.disabled = !speechEnabled;
-        if (!speechEnabled) {
+        if (speechEnabled) {
+            speakExamplesEnabled = true; // Включаем озвучивание примеров по умолчанию
+            toggleExamplesSpeechBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-play"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+            toggleExamplesSpeechBtn.title = 'Выключить озвучивание примеров';
+        } else {
             speakExamplesEnabled = false;
             toggleExamplesSpeechBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>';
             toggleExamplesSpeechBtn.title = 'Включить озвучивание примеров';
@@ -739,7 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (toggleExamplesSpeechButton) {
-        toggleExamplesSpeechButton.disabled = true;
+        toggleExamplesSpeechButton.disabled = true; // Изначально отключено
         toggleExamplesSpeechButton.addEventListener('click', () => {
             speakExamplesEnabled = !speakExamplesEnabled;
             toggleExamplesSpeechButton.innerHTML = speakExamplesEnabled
@@ -872,7 +894,7 @@ function endSession() {
 // Auto-sync and connection handling
 function setupAutoSync() {
     window.addEventListener('online', () => syncManager.connectToExistingSync());
-    window.addEventListener('offline', () => syncManager.updateSyncStatus('Оффлайн режим', '🔴'));
+    window.addEventListener('offline', () => syncManager.updateSyncStatus('Оффлайн режим', syncManager.icons.error));
     window.addEventListener('beforeunload', () => {
         if (syncManager.isConnected) syncManager.syncToRemote();
     });
