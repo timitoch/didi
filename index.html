@@ -94,7 +94,7 @@
         <div class="stats">
             <div class="stat-item">
                 <div class="stat-number" id="new-count">0</div>
-                <div class="stat-label">Новых слов сегодня</div>
+                <div class="stat-label">Всего слов</div>
             </div>
             <div class="stat-item">
                 <div class="stat-number" id="due-count">0</div>
@@ -842,7 +842,29 @@ function updateBackButton() {
 
 function displayCard() {
     ratingContainer.classList.remove('hidden');
+
+    // 1. Получаем все формы слова, включая единственное и множественное число
+    let formsToHighlight = [];
+
+    // Извлекаем все слова из поля "german", разделяя по запятой и пробелу
+    if (currentCard.german) {
+        const nounForms = currentCard.german.toLowerCase().split(/,\s*|\s+/);
+        formsToHighlight = formsToHighlight.concat(nounForms);
+    }
+
+    // Добавляем все формы из поля additionalInfo1 (если они есть)
+    if (currentCard.additionalInfo1) {
+        const additionalForms = currentCard.additionalInfo1.match(/\w+/g);
+        if (additionalForms) {
+            formsToHighlight = formsToHighlight.concat(additionalForms.map(f => f.toLowerCase()));
+        }
+    }
     
+    // Удаляем дубликаты и пустые строки, и убираем артикли (der, die, das)
+    formsToHighlight = [...new Set(formsToHighlight)]
+                       .filter(word => word && word !== 'der' && word !== 'die' && word !== 'das');
+
+    // 2. Создаем HTML для карточки, используя все найденные формы для выделения
     let genderClass = '';
     if (currentCard.gender === 'masculine') {
         genderClass = 'masculine';
@@ -862,13 +884,16 @@ function displayCard() {
     
     let examples = '';
     if (currentCard.example1) {
-        examples += `<div class="example">${currentCard.example1}</div>`;
+        const highlightedExample = highlightWordsInExample(currentCard.example1, formsToHighlight);
+        examples += `<div class="example">${highlightedExample}</div>`;
     }
     if (currentCard.example2) {
-        examples += `<div class="example">${currentCard.example2}</div>`;
+        const highlightedExample = highlightWordsInExample(currentCard.example2, formsToHighlight);
+        examples += `<div class="example">${highlightedExample}</div>`;
     }
     if (currentCard.example3) {
-        examples += `<div class="example">${currentCard.example3}</div>`;
+        const highlightedExample = highlightWordsInExample(currentCard.example3, formsToHighlight);
+        examples += `<div class="example">${highlightedExample}</div>`;
     }
     
     cardContainer.innerHTML = `
@@ -885,6 +910,41 @@ function displayCard() {
     `;
     
     document.getElementById('card-inner').addEventListener('click', flipCard);
+}
+
+function highlightWordsInExample(exampleText, wordsToHighlight) {
+    if (!exampleText || !wordsToHighlight || wordsToHighlight.length === 0) {
+        return exampleText;
+    }
+
+        // Генерируем "умные" паттерны для регулярного выражения
+    const smartPatterns = wordsToHighlight.flatMap(word => {
+        const patterns = [word];
+        
+        // Если слово оканчивается на 'en', добавляем паттерн с 'e' и 't'
+        if (word.endsWith('en')) {
+            const root = word.slice(0, -2);
+            patterns.push(`${root}e`, `${root}t`);
+        } 
+        // Если слово оканчивается на 'n', добавляем паттерн с 'e'
+        else if (word.endsWith('n') && word.length > 2) {
+            const root = word.slice(0, -1);
+            patterns.push(`${root}e`);
+        }
+
+        return patterns.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    });
+
+    // Объединяем все уникальные паттерны в одну строку
+    const regexPattern = [...new Set(smartPatterns)].join('|');
+
+    // Создаем регулярное выражение с границами слова и без учета регистра
+    const regex = new RegExp(`\\b(${regexPattern})\\b`, 'gi');
+
+    // Заменяем все найденные совпадения, оборачивая их в тег <strong>
+    const highlightedText = exampleText.replace(regex, `<strong>$&</strong>`);
+
+    return highlightedText;
 }
 
 function flipCard() {

@@ -262,7 +262,7 @@
         }
 
         .german-word {
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 600;
             margin-bottom: 8px;
             text-align: center;
@@ -302,7 +302,7 @@
         }
 
         .translation {
-            font-size: 28px;
+            font-size: 25px;
             font-weight: 600;
             color: var(--text-primary);
             text-align: center;
@@ -579,7 +579,7 @@
             }
             
             .german-word, .translation {
-                font-size: 24px;
+                font-size: 20px;
             }
             
             .stats {
@@ -627,3 +627,24 @@
         .hidden {
             display: none !important;
         }
+
+        .example strong {
+    font-weight: 700; /* Делаем жирным */
+    color: var(--text-primary); /* Убедитесь, что цвет контрастен */
+}
+
+/* Выделение слов в примерах по родам */
+.example .highlight-masculine {
+    color: var(--masculine-color);
+    font-weight: 700;
+}
+
+.example .highlight-feminine {
+    color: var(--feminine-color);
+    font-weight: 700;
+}
+
+.example .highlight-neuter {
+    color: var(--neuter-color);
+    font-weight: 700;
+}
