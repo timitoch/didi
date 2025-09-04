@@ -11,6 +11,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
+// DOM Element References
 const uploadContainer = document.getElementById('upload-container');
 const fileInput = document.getElementById('file-input');
 const trainerContainer = document.getElementById('trainer-container');
@@ -27,6 +28,7 @@ const masteredNumberEl = document.getElementById('mastered-number');
 const uploadArea = document.getElementById('upload-area');
 const resetButton = document.getElementById('reset-progress-btn');
 
+// Sync UI Elements
 const createSyncBtn = document.getElementById('create-sync-btn');
 const joinSyncBtn = document.getElementById('join-sync-btn');
 const disconnectSyncBtn = document.getElementById('disconnect-sync-btn');
@@ -40,6 +42,14 @@ const syncStatus = document.getElementById('sync-status');
 const syncText = document.getElementById('sync-text');
 const syncIndicator = document.getElementById('sync-indicator');
 const syncIndicatorSmall = document.getElementById('sync-indicator-small');
+
+// Card Structure Elements (for performance)
+const cardInner = document.getElementById('card-inner');
+const cardGermanWord = document.getElementById('card-german-word');
+const cardAdditionalInfo = document.getElementById('card-additional-info');
+const cardExamples = document.getElementById('card-examples');
+const cardTranslation = document.getElementById('card-translation');
+
 const DAILY_STUDIED_WORDS_KEY = 'daily_studied_words_v3';
 
 class SyncManager {
@@ -267,15 +277,8 @@ class SyncManager {
         remote.forEach(remoteCard => {
             const localCard = merged.get(remoteCard.id);
             
-            if (!localCard) {
+            if (!localCard || new Date(remoteCard.nextReviewDate) > new Date(localCard.nextReviewDate)) {
                 merged.set(remoteCard.id, remoteCard);
-            } else {
-                const localNext = new Date(localCard.nextReviewDate);
-                const remoteNext = new Date(remoteCard.nextReviewDate);
-                
-                if (remoteNext > localNext) {
-                    merged.set(remoteCard.id, remoteCard);
-                }
             }
         });
         
@@ -286,11 +289,9 @@ class SyncManager {
         const merged = { ...local };
         
         Object.keys(remote).forEach(date => {
-            if (!merged[date]) {
-                merged[date] = remote[date];
-            } else {
-                merged[date].done = Math.max(merged[date].done, remote[date].done);
-            }
+            merged[date] = {
+                done: Math.max(merged[date]?.done || 0, remote[date].done)
+            };
         });
         
         return merged;
@@ -300,15 +301,8 @@ class SyncManager {
         const merged = { ...local };
         
         Object.keys(remote).forEach(cardId => {
-            if (!merged[cardId]) {
+            if (!merged[cardId] || new Date(remote[cardId].expires) > new Date(merged[cardId].expires)) {
                 merged[cardId] = remote[cardId];
-            } else {
-                const localExpires = new Date(merged[cardId].expires);
-                const remoteExpires = new Date(remote[cardId].expires);
-                
-                if (remoteExpires > localExpires) {
-                    merged[cardId] = remote[cardId];
-                }
             }
         });
         
@@ -321,20 +315,20 @@ class SyncManager {
         clearTimeout(this.syncDebounceTimer);
         this.syncDebounceTimer = setTimeout(async () => {
             try {
-                const data = this.getLocalData();
-                await database.ref(`sync_codes/${this.currentSyncCode}/data`).set(data);
+                await database.ref(`sync_codes/${this.currentSyncCode}/data`).set(this.getLocalData());
                 this.lastSyncTime = Date.now();
                 this.updateSyncStatus('Синхронизировано', '🟢');
             } catch (error) {
                 console.error('Ошибка синхронизации:', error);
                 this.updateSyncStatus('Ошибка синхронизации', '🔴');
             }
-        }, 1000);
+        }, 1000); // Debounce Firebase writes
     }
 }
 
 const syncManager = new SyncManager();
 
+// Event Listeners for Upload Area
 uploadArea.addEventListener('dragover', (e) => {
     e.preventDefault();
     uploadArea.classList.add('dragover');
@@ -348,16 +342,12 @@ uploadArea.addEventListener('dragleave', (e) => {
 uploadArea.addEventListener('drop', (e) => {
     e.preventDefault();
     uploadArea.classList.remove('dragover');
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        handleFile(files[0]);
+    if (e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
     }
 });
 
-uploadArea.addEventListener('click', () => {
-    fileInput.click();
-});
+uploadArea.addEventListener('click', () => fileInput.click());
 
 reloadFileBtn.addEventListener('click', () => {
     trainerContainer.classList.add('hidden');
@@ -377,8 +367,7 @@ backToTrainerBtn.addEventListener('click', () => {
 });
 
 resetButton.addEventListener('click', () => {
-    const confirmation = confirm('Вы уверены, что хотите сбросить весь прогресс? Это действие нельзя отменить.');
-    if (confirmation) {
+    if (confirm('Вы уверены, что хотите сбросить весь прогресс? Это действие нельзя отменить.')) {
         localStorage.removeItem(DECK_KEY);
         localStorage.removeItem(DAILY_STATS_KEY);
         localStorage.removeItem(MASTERED_KEY);
@@ -421,29 +410,25 @@ fileInput.addEventListener('change', (e) => {
 
 ratingContainer.addEventListener('click', handleRating);
 
-
 backBtn.addEventListener('click', () => {
-    if (cardHistory.length === 0) {
-        return;
-    }
+    if (cardHistory.length === 0) return;
 
     const lastCardState = cardHistory.pop();
     currentCard = lastCardState.card;
-    const { rating, isNew, cardId } = lastCardState;
     
     sessionQueue.unshift(currentCard);
 
-    if (rating >= 3) {
+    if (lastCardState.rating >= 3) {
         const updatedStats = updateTodayStats(-1);
         window.sessionStats.done = updatedStats.done;
     }
     
     window.sessionStats.due = Math.max(0, window.sessionStats.due + 1);
     
-    if (rating >= 5) {
+    if (lastCardState.rating >= 5) {
         const masteredWords = JSON.parse(localStorage.getItem(MASTERED_KEY) || '{}');
-        if (masteredWords[cardId]) {
-            delete masteredWords[cardId];
+        if (masteredWords[lastCardState.cardId]) {
+            delete masteredWords[lastCardState.cardId];
             localStorage.setItem(MASTERED_KEY, JSON.stringify(masteredWords));
             updateMasteredCount();
         }
@@ -463,11 +448,10 @@ backBtn.addEventListener('click', () => {
 });
 
 window.addEventListener('load', loadProgress);
+cardInner.addEventListener('click', flipCard); // Attach flip listener once
 
 function handleFile(file) {
-    if (!file) return;
-    
-    if (!file.name.match(/\.(xlsx|xls)$/i)) {
+    if (!file || !file.name.match(/\.(xlsx|xls)$/i)) {
         alert('Пожалуйста, выберите Excel файл (.xlsx или .xls)');
         return;
     }
@@ -495,8 +479,7 @@ function parseAndInitDeck(data) {
         return;
     }
     
-    const newWords = data
-        .slice(1)
+    const newWords = data.slice(1)
         .filter(row => row && row[1] && row[2])
         .map(row => ({
             id: row[0] || Math.random().toString(36).substr(2, 9),
@@ -518,81 +501,62 @@ function parseAndInitDeck(data) {
         return;
     }
     
-    if (fullDeck.length > 0) {
-        const existingWords = new Map();
-        fullDeck.forEach(word => {
-            existingWords.set(word.german, word);
-        });
-        
-        const mergedDeck = [];
-        newWords.forEach(newWord => {
-            const existingWord = existingWords.get(newWord.german);
-            if (existingWord) {
-                mergedDeck.push({
-                    ...existingWord,
-                    german: newWord.german,
-                    translation: newWord.translation,
-                    additionalInfo1: newWord.additionalInfo1,
-                    additionalInfo2: newWord.additionalInfo2,
-                    example1: newWord.example1,
-                    example2: newWord.example2,
-                    example3: newWord.example3,
-                    gender: newWord.gender
-                });
-            } else {
-                mergedDeck.push(newWord);
-            }
-        });
-        
-        fullDeck = mergedDeck;
-        alert(`Файл обновлен! Добавлено ${newWords.length - existingWords.size} новых слов.`);
+    const existingWordsMap = new Map(fullDeck.map(word => [word.german, word]));
+    let addedCount = 0;
+
+    newWords.forEach(newWord => {
+        const existingWord = existingWordsMap.get(newWord.german);
+        if (existingWord) {
+            Object.assign(existingWord, {
+                translation: newWord.translation,
+                additionalInfo1: newWord.additionalInfo1,
+                additionalInfo2: newWord.additionalInfo2,
+                example1: newWord.example1,
+                example2: newWord.example2,
+                example3: newWord.example3,
+                gender: newWord.gender
+            });
+        } else {
+            fullDeck.push(newWord);
+            addedCount++;
+        }
+    });
+
+    if (existingWordsMap.size > 0) {
+         alert(`Файл обновлен! Добавлено ${addedCount} новых слов.`);
     } else {
         fullDeck = newWords;
     }
-    
+
     saveProgress();
     startSession();
 }
 
 function detectGender(germanWord) {
     if (!germanWord) return null;
-    
     const word = germanWord.trim().toLowerCase();
-    
-    if (word.startsWith('der ')) {
-        return 'masculine';
-    } else if (word.startsWith('die ')) {
-        return 'feminine';
-    } else if (word.startsWith('das ')) {
-        return 'neuter';
-    }
-    
-    if (word.includes('(der)') || word.includes('- der')) {
-        return 'masculine';
-    } else if (word.includes('(die)') || word.includes('- die')) {
-        return 'feminine';
-    } else if (word.includes('(das)') || word.includes('- das')) {
-        return 'neuter';
-    }
-    
+    if (word.startsWith('der ') || word.includes('(der)') || word.includes('- der')) return 'masculine';
+    if (word.startsWith('die ') || word.includes('(die)') || word.includes('- die')) return 'feminine';
+    if (word.startsWith('das ') || word.includes('(das)') || word.includes('- das')) return 'neuter';
     return null;
 }
 
+let saveDebounceTimer = null;
 function saveProgress() {
-    if (fullDeck.length > 0) {
-        localStorage.setItem(DECK_KEY, JSON.stringify(fullDeck));
-        syncManager.syncToRemote();
-    }
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(() => {
+        if (fullDeck.length > 0) {
+            localStorage.setItem(DECK_KEY, JSON.stringify(fullDeck));
+            syncManager.syncToRemote();
+        }
+    }, 1500); // Debounce saving to avoid excessive writes
 }
 
 function loadProgress() {
     const savedDeck = localStorage.getItem(DECK_KEY);
     if (savedDeck) {
-        fullDeck = JSON.parse(savedDeck);
-        fullDeck = fullDeck.map(card => {
-            if (!card.gender) {
-                card.gender = detectGender(card.german);
-            }
+        fullDeck = JSON.parse(savedDeck).map(card => {
+            if (!card.gender) card.gender = detectGender(card.german);
             return card;
         });
         if (fullDeck.length > 0) {
@@ -603,30 +567,19 @@ function loadProgress() {
 
 function getTodayStats() {
     const today = new Date().toDateString();
-    const saved = localStorage.getItem(DAILY_STATS_KEY);
-    let stats = saved ? JSON.parse(saved) : {};
-    
-    if (!stats[today]) {
-        stats[today] = { done: 0 };
-    }
-    
-    return stats[today];
+    const stats = JSON.parse(localStorage.getItem(DAILY_STATS_KEY) || '{}');
+    return stats[today] || { done: 0 };
 }
 
 function updateTodayStats(increment = 1) {
     const today = new Date().toDateString();
-    const saved = localStorage.getItem(DAILY_STATS_KEY);
-    let stats = saved ? JSON.parse(saved) : {};
-    
+    const stats = JSON.parse(localStorage.getItem(DAILY_STATS_KEY) || '{}');
     if (!stats[today]) {
         stats[today] = { done: 0 };
     }
-    
     stats[today].done += increment;
     localStorage.setItem(DAILY_STATS_KEY, JSON.stringify(stats));
-    
     syncManager.syncToRemote();
-    
     return stats[today];
 }
 
@@ -642,15 +595,12 @@ function startSession() {
     sessionQueue = dueCards.sort(() => Math.random() - 0.5);
     cardHistory = [];
     
-    const todayStats = getTodayStats();
-    
-    const stats = {
+    window.sessionStats = {
         new: fullDeck.length,
         due: dueCards.length,
-        done: todayStats.done
+        done: getTodayStats().done
     };
     
-    window.sessionStats = stats;
     updateStatsUI();
     updateMasteredCount();
     
@@ -669,12 +619,9 @@ function updateStatsUI() {
 
 function nextCard() {
     if (sessionQueue.length === 0) {
-        if (checkSessionCompletion()) {
-            return;
-        }
-        const readyCards = getCardsReadyForReview();
+        const readyCards = fullDeck.filter(card => new Date(card.nextReviewDate) <= new Date());
         if (readyCards.length > 0) {
-            sessionQueue = [...readyCards].sort(() => Math.random() - 0.5);
+            sessionQueue = readyCards.sort(() => Math.random() - 0.5);
         } else {
             endSession();
             return;
@@ -683,33 +630,13 @@ function nextCard() {
     
     currentCard = sessionQueue.shift();
     isCardFlipped = false;
+    cardInner.classList.remove('is-flipped');
     updateBackButton();
     displayCard();
     
     if (speechEnabled) {
-        speakGermanWord(currentCard.german);
+        speakCurrentCard();
     }
-}
-
-function goToPreviousCard() {
-    if (cardHistory.length === 0) return;
-    
-    if (currentCard) {
-        sessionQueue.unshift(currentCard);
-    }
-    
-    currentCard = cardHistory.pop();
-    isCardFlipped = false;
-    updateBackButton();
-    displayCard();
-    
-    if (!sessionEndElement.classList.contains('hidden')) {
-        sessionEndElement.classList.add('hidden');
-        cardContainer.classList.remove('hidden');
-        ratingContainer.classList.remove('hidden');
-    }
-    
-    updateStatsUI();
 }
 
 function updateBackButton() {
@@ -719,132 +646,51 @@ function updateBackButton() {
 function displayCard() {
     ratingContainer.classList.remove('hidden');
 
-    // 1. Получаем все формы слова, включая единственное и множественное число
     let formsToHighlight = [];
-
-    // Извлекаем все слова из поля "german", разделяя по запятой и пробелу
     if (currentCard.german) {
-        const nounForms = currentCard.german.toLowerCase().split(/,\s*|\s+/);
-        formsToHighlight = formsToHighlight.concat(nounForms);
+        formsToHighlight.push(...currentCard.german.toLowerCase().split(/,\s*|\s+/));
     }
-
-    // Добавляем все формы из поля additionalInfo1 (если они есть)
     if (currentCard.additionalInfo1) {
-        const additionalForms = currentCard.additionalInfo1.match(/\w+/g);
-        if (additionalForms) {
-            formsToHighlight = formsToHighlight.concat(additionalForms.map(f => f.toLowerCase()));
+        formsToHighlight.push(...(currentCard.additionalInfo1.match(/\w+/g) || []).map(f => f.toLowerCase()));
+    }
+    formsToHighlight = [...new Set(formsToHighlight)].filter(w => w && !['der', 'die', 'das'].includes(w));
+
+    const smartPatterns = formsToHighlight.flatMap(word => {
+        const patterns = [word];
+        if (word.endsWith('en')) {
+            const root = word.slice(0, -2);
+            patterns.push(`${root}e`, `${root}t`);
+        } else if (word.endsWith('n') && word.length > 2) {
+            patterns.push(word.slice(0, -1) + 'e');
         }
-    }
-    
-    // Удаляем дубликаты и пустые строки, и убираем артикли (der, die, das)
-    formsToHighlight = [...new Set(formsToHighlight)]
-                       .filter(word => word && word !== 'der' && word !== 'die' && word !== 'das');
+        return patterns.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    });
 
-    // 2. Создаем HTML для карточки, используя все найденные формы для выделения
-    let genderClass = '';
-    if (currentCard.gender === 'masculine') {
-        genderClass = 'masculine';
-    } else if (currentCard.gender === 'feminine') {
-        genderClass = 'feminine';
-    } else if (currentCard.gender === 'neuter') {
-        genderClass = 'neuter';
-    }
-    
-    
-    let additionalInfo = '';
-    if (currentCard.additionalInfo1) {
-        additionalInfo += `<div class="additional-info">${currentCard.additionalInfo1}</div>`;
-    }
-    if (currentCard.additionalInfo2) {
-        additionalInfo += `<div class="additional-info">${currentCard.additionalInfo2}</div>`;
-    }
-    
-    let examples = '';
-    if (currentCard.example1) {
-        const highlightedExample = highlightWordsInExample(currentCard.example1, formsToHighlight);
-        examples += `<div class="example">${highlightedExample}</div>`;
-    }
-    if (currentCard.example2) {
-        const highlightedExample = highlightWordsInExample(currentCard.example2, formsToHighlight);
-        examples += `<div class="example">${highlightedExample}</div>`;
-    }
-    if (currentCard.example3) {
-        const highlightedExample = highlightWordsInExample(currentCard.example3, formsToHighlight);
-        examples += `<div class="example">${highlightedExample}</div>`;
-    }
+    const regex = smartPatterns.length ? new RegExp(`\\b(${[...new Set(smartPatterns)].join('|')})\\b`, 'gi') : null;
+    const highlight = (text) => regex ? text.replace(regex, '<strong>$&</strong>') : text;
 
-    // Добавьте этот код сразу после `document.getElementById('card-inner').addEventListener('click', flipCard);`
+    // Update DOM content
+    cardGermanWord.className = `german-word ${currentCard.gender || ''}`;
+    cardGermanWord.textContent = currentCard.german;
+    cardTranslation.textContent = currentCard.translation;
 
-    
-    cardContainer.innerHTML = `
-    <div class="card-inner" id="card-inner">
-        <div class="card-face card-front">
-            <div class="german-word-container">
-                <div class="german-word ${genderClass}">${currentCard.german}</div>
-                <button id="play-audio-btn" class="audio-btn hidden" title="Озвучить слово">🔊</button>
-            </div>
-            ${additionalInfo}
-            ${examples}
-        </div>
-        <div class="card-face card-back">
-            <div class="translation">${currentCard.translation}</div>
-        </div>
-    </div>
-`;
+    cardAdditionalInfo.innerHTML = 
+        (currentCard.additionalInfo1 ? `<div class="additional-info">${currentCard.additionalInfo1}</div>` : '') +
+        (currentCard.additionalInfo2 ? `<div class="additional-info">${currentCard.additionalInfo2}</div>` : '');
+
+    cardExamples.innerHTML = 
+        (currentCard.example1 ? `<div class="example">${highlight(currentCard.example1)}</div>` : '') +
+        (currentCard.example2 ? `<div class="example">${highlight(currentCard.example2)}</div>` : '') +
+        (currentCard.example3 ? `<div class="example">${highlight(currentCard.example3)}</div>` : '');
 
     if (speechEnabled) {
         speakCurrentCard();
     }
-
-    document.getElementById('card-inner').addEventListener('click', flipCard);
-
-}
-
-function highlightWordsInExample(exampleText, wordsToHighlight) {
-    if (!exampleText || !wordsToHighlight || wordsToHighlight.length === 0) {
-        return exampleText;
-    }
-
-        // Генерируем "умные" паттерны для регулярного выражения
-    const smartPatterns = wordsToHighlight.flatMap(word => {
-        const patterns = [word];
-        
-        // Если слово оканчивается на 'en', добавляем паттерн с 'e' и 't'
-        if (word.endsWith('en')) {
-            const root = word.slice(0, -2);
-            patterns.push(`${root}e`, `${root}t`);
-        } 
-        // Если слово оканчивается на 'n', добавляем паттерн с 'e'
-        else if (word.endsWith('n') && word.length > 2) {
-            const root = word.slice(0, -1);
-            patterns.push(`${root}e`);
-        }
-
-        return patterns.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-    });
-
-    // Объединяем все уникальные паттерны в одну строку
-    const regexPattern = [...new Set(smartPatterns)].join('|');
-
-    // Создаем регулярное выражение с границами слова и без учета регистра
-    const regex = new RegExp(`\\b(${regexPattern})\\b`, 'gi');
-
-    // Заменяем все найденные совпадения, оборачивая их в тег <strong>
-    const highlightedText = exampleText.replace(regex, `<strong>$&</strong>`);
-
-    return highlightedText;
 }
 
 function flipCard() {
-    const cardInner = document.getElementById('card-inner');
-    
-    if (!isCardFlipped) {
-        cardInner.classList.add('is-flipped');
-        isCardFlipped = true;
-    } else {
-        cardInner.classList.remove('is-flipped');
-        isCardFlipped = false;
-    }
+    isCardFlipped = !isCardFlipped;
+    cardInner.classList.toggle('is-flipped');
 }
 
 let speechEnabled = false;
@@ -858,11 +704,9 @@ function toggleSpeech() {
     toggleSpeechBtn.innerHTML = speechEnabled ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-volume-2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-volume-x"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
     toggleSpeechBtn.title = speechEnabled ? 'Выключить озвучивание' : 'Включить озвучивание';
 
-    // Включаем/отключаем кнопку озвучивания примеров в зависимости от состояния главной кнопки
     if (toggleExamplesSpeechBtn) {
         toggleExamplesSpeechBtn.disabled = !speechEnabled;
         if (!speechEnabled) {
-            // Если выключили основную озвучку, то выключаем и озвучку примеров
             speakExamplesEnabled = false;
             toggleExamplesSpeechBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>';
             toggleExamplesSpeechBtn.title = 'Включить озвучивание примеров';
@@ -874,70 +718,18 @@ function toggleSpeech() {
     }
 }
 
-function speakGermanWord(text) {
-    if (!speechEnabled) return;
-
-    if (typeof responsiveVoice !== 'undefined' && responsiveVoice.isPlaying() === false) {
-        responsiveVoice.speak(text, "Deutsch Male", {
-            pitch: 1.2,
-            rate: 1.0,
-            volume: 1,
-            onend: () => {
-                if (speakExamplesEnabled && currentCard) {
-                    speakExamples();
-                }
-            }
-        });
-    }
-}
-
 function speakCurrentCard() {
-    if (!currentCard || !speechEnabled) return;
+    if (!currentCard || !speechEnabled || typeof responsiveVoice === 'undefined' || responsiveVoice.isPlaying()) return;
     
-    let textToSpeak = currentCard.german;
-
-    if (currentCard.additionalInfo1) {
-        textToSpeak += `. ${currentCard.additionalInfo1}`;
-    }
-
-    if (speakExamplesEnabled) {
-        if (currentCard.example1) {
-            textToSpeak += `. ${currentCard.example1}`;
-        }
-        if (currentCard.example2) {
-            textToSpeak += `. ${currentCard.example2}`;
-        }
-        if (currentCard.example3) {
-            textToSpeak += `. ${currentCard.example3}`;
-        }
-    }
+    let textToSpeak = [
+        currentCard.german,
+        currentCard.additionalInfo1,
+        ...(speakExamplesEnabled ? [currentCard.example1, currentCard.example2, currentCard.example3] : [])
+    ].filter(Boolean).join('. ');
     
-    responsiveVoice.speak(textToSpeak, "Deutsch Male", {
-        pitch: 1.2,
-        rate: 1.0,
-        volume: 1,
-        onend: () => {
-            // Здесь можно добавить логику, если нужно что-то делать после озвучивания
-        }
-    });
+    responsiveVoice.speak(textToSpeak, "Deutsch Male", { pitch: 1.2, rate: 1.0, volume: 1 });
 }
 
-function speakExamples() {
-    if (!currentCard) return;
-    const examples = [currentCard.example1, currentCard.example2, currentCard.example3]
-                     .filter(e => e && e.trim() !== '');
-
-    if (examples.length > 0) {
-        const allExamplesText = examples.join('. ');
-        responsiveVoice.speak(allExamplesText, "Deutsch Male", {
-            pitch: 1.2,
-            rate: 1.0,
-            volume: 1
-        });
-    }
-}
-
-// Привязываем обработчик события к кнопке после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
     const toggleSpeechButton = document.getElementById('toggle-speech-btn');
     const toggleExamplesSpeechButton = document.getElementById('toggle-examples-speech-btn');
@@ -947,29 +739,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (toggleExamplesSpeechButton) {
-    toggleExamplesSpeechButton.disabled = true;
-    toggleExamplesSpeechButton.addEventListener('click', () => {
-        speakExamplesEnabled = !speakExamplesEnabled;
-        
-        // Изменяем иконку в зависимости от состояния speakExamplesEnabled
-        if (speakExamplesEnabled) {
-            // Если включено - иконка "открытая книга" или "проигрывание"
-            toggleExamplesSpeechButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-play"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>'; // Пример иконки "громкость 1"
-            toggleExamplesSpeechButton.title = 'Выключить озвучивание примеров';
-        } else {
-            // Если выключено - иконка "книга" или "пауза"
-            toggleExamplesSpeechButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>'; // Иконка "книга"
-            toggleExamplesSpeechButton.title = 'Включить озвучивание примеров';
-        }
+        toggleExamplesSpeechButton.disabled = true;
+        toggleExamplesSpeechButton.addEventListener('click', () => {
+            speakExamplesEnabled = !speakExamplesEnabled;
+            toggleExamplesSpeechButton.innerHTML = speakExamplesEnabled
+                ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-play"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>'
+                : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>';
+            toggleExamplesSpeechButton.title = speakExamplesEnabled ? 'Выключить озвучивание примеров' : 'Включить озвучивание примеров';
 
-        if (speakExamplesEnabled && speechEnabled && currentCard) {
-            speakCurrentCard();
-        }
+            if (speakExamplesEnabled && speechEnabled && currentCard) {
+                speakCurrentCard();
+            }
         });
     }
 });
-
-
 
 function handleRating(event) {
     if (!event.target.matches('.rating-btn')) return;
@@ -978,23 +761,19 @@ function handleRating(event) {
     ratingButtons.forEach(btn => btn.disabled = true);
 
     const rating = parseInt(event.target.dataset.rating, 10);
-    const isNew = currentCard.interval === 0;
-
-    const cardState = {
+    
+    cardHistory.push({
         card: { ...currentCard },
         rating: rating,
-        isNew: isNew,
+        isNew: currentCard.interval === 0,
         cardId: currentCard.id
-    };
-    cardHistory.push(cardState);
+    });
 
     updateMasteredWords(currentCard.id, rating);
-
     updateCardInterval(rating);
     
     if (rating >= 3) {
-        const updatedStats = updateTodayStats(1);
-        window.sessionStats.done = updatedStats.done;
+        window.sessionStats.done = updateTodayStats(1).done;
     }
     
     window.sessionStats.due = Math.max(0, window.sessionStats.due - 1);
@@ -1002,61 +781,39 @@ function handleRating(event) {
     updateStatsUI();
     saveProgress();
     
-setTimeout(() => {
-    nextCard();
-    ratingButtons.forEach(btn => btn.disabled = false);
-}, 300);
+    setTimeout(() => {
+        nextCard();
+        ratingButtons.forEach(btn => btn.disabled = false);
+    }, 300);
 }
 
 function updateCardInterval(rating) {
     const MIN_EASE = 1.3;
     const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-    let { easeFactor, interval, lastReviewDate } = currentCard;
+    let { easeFactor, interval } = currentCard;
     const now = new Date();
 
     if (rating < 3) {
-        interval = 5 * 60 * 1000; 
-        easeFactor = Math.max(MIN_EASE, easeFactor - 0.2);
+        interval = 0; // Reset progress
+        currentCard.nextReviewDate = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
+        sessionQueue.push(currentCard); // Re-add to the end of the queue for this session
     } else {
+        easeFactor = easeFactor + (0.1 - (5 - rating) * 0.08 - (5 - rating) * 0.02);
+        if (easeFactor < MIN_EASE) easeFactor = MIN_EASE;
+
         if (interval === 0) {
-            interval = 0.5;
+            interval = 1;
+        } else if (interval === 1) {
+            interval = 4;
         } else {
-            interval = interval * easeFactor;
+            interval = Math.ceil(interval * easeFactor);
         }
-        
-        if (rating < 5) {
-            easeFactor = Math.max(MIN_EASE, easeFactor - 0.1);
-        } else {
-            easeFactor += 0.1;
-        }
+        currentCard.nextReviewDate = new Date(now.getTime() + interval * ONE_DAY_MS).toISOString();
     }
     
     currentCard.interval = interval;
     currentCard.easeFactor = easeFactor;
     currentCard.lastReviewDate = now.toISOString();
-    
-    const nextReview = new Date(now.getTime() + (rating < 3 ? 5 * 60 * 1000 : interval * ONE_DAY_MS));
-    currentCard.nextReviewDate = nextReview.toISOString();
-}
-
-function previewNextReviewDate(card, rating) {
-    const MIN_EASE = 1.3;
-    let easeFactor = card.easeFactor || 2.5;
-    let interval = card.interval || 0;
-
-    if (rating < 3) {
-        return new Date(Date.now() + 5 * 60 * 1000);
-    }
-
-    if (interval === 0) {
-        interval = 1;
-    } else if (interval === 1) {
-        interval = 4;
-    } else {
-        interval = Math.round(interval * easeFactor);
-    }
-
-    return new Date(Date.now() + interval * 24 * 60 * 60 * 1000);
 }
 
 function updateMasteredWords(cardId, rating) {
@@ -1067,9 +824,7 @@ function updateMasteredWords(cardId, rating) {
             expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         };
     } else {
-        if (masteredWords[cardId]) {
-            delete masteredWords[cardId];
-        }
+        delete masteredWords[cardId];
     }
 
     localStorage.setItem(MASTERED_KEY, JSON.stringify(masteredWords));
@@ -1078,235 +833,49 @@ function updateMasteredWords(cardId, rating) {
 
 function updateMasteredCount() {
     const now = new Date();
-    const saved = localStorage.getItem(MASTERED_KEY);
-    let mastered = saved ? JSON.parse(saved) : {};
+    const mastered = JSON.parse(localStorage.getItem(MASTERED_KEY) || '{}');
     
-    for (const [cardId, data] of Object.entries(mastered)) {
-        if (data && new Date(data.expires) <= now) {
-            delete mastered[cardId];
-        }
+    const activeMastered = Object.keys(mastered).filter(cardId => new Date(mastered[cardId].expires) > now);
+    
+    if (activeMastered.length !== Object.keys(mastered).length) {
+        const updatedMastered = activeMastered.reduce((obj, key) => {
+            obj[key] = mastered[key];
+            return obj;
+        }, {});
+        localStorage.setItem(MASTERED_KEY, JSON.stringify(updatedMastered));
     }
     
-    localStorage.setItem(MASTERED_KEY, JSON.stringify(mastered));
-    
-    const count = Object.keys(mastered).length;
-    masteredNumberEl.textContent = count;
+    masteredNumberEl.textContent = activeMastered.length;
 }
 
 function endSession() {
     cardContainer.classList.add('hidden');
     ratingContainer.classList.add('hidden');
-    
     sessionEndElement.classList.remove('hidden');
-
-    const endMessageText = document.getElementById('end-message-text');
-    const restartBtn = document.getElementById('restart-btn');
-    
-    restartBtn.classList.remove('hidden');
 
     const futureCards = fullDeck.filter(card => new Date(card.nextReviewDate) > new Date());
 
     if (futureCards.length > 0) {
         const nextReviewDate = new Date(Math.min(...futureCards.map(card => new Date(card.nextReviewDate))));
-        const diffMinutes = Math.ceil((nextReviewDate - new Date()) / (1000 * 60));
+        const diffMinutes = Math.ceil((nextReviewDate - new Date()) / 60000);
         
-        let timeToNext = '';
-        if (diffMinutes < 60) {
-            timeToNext = `примерно через ${diffMinutes} мин.`;
-        } else if (diffMinutes < 1440) {
-            timeToNext = `примерно через ${Math.round(diffMinutes / 60)} ч.`;
-        } else {
-            timeToNext = `примерно через ${Math.round(diffMinutes / 1440)} д.`;
-        }
+        let timeToNext = `примерно через ${diffMinutes} мин.`;
+        if (diffMinutes >= 60) timeToNext = `примерно через ${Math.round(diffMinutes / 60)} ч.`;
+        if (diffMinutes >= 1440) timeToNext = `примерно через ${Math.round(diffMinutes / 1440)} д.`;
         
-        endMessageText.textContent = `Вы отлично поработали! Следующее повторение ${timeToNext}`;
+        document.getElementById('end-message-text').textContent = `Вы отлично поработали! Следующее повторение ${timeToNext}`;
     } else {
-        endMessageText.textContent = 'Поздравляем! Вы выучили все слова.';
+        document.getElementById('end-message-text').textContent = 'Поздравляем! Вы выучили все слова.';
     }
 }
 
+// Auto-sync and connection handling
 function setupAutoSync() {
-    const originalSetItem = localStorage.setItem;
-    localStorage.setItem = function(key, value) {
-        originalSetItem.call(this, key, value);
-        
-        if ([DECK_KEY, DAILY_STATS_KEY, MASTERED_KEY].includes(key)) {
-            if (syncManager.isConnected) {
-                syncManager.syncToRemote();
-            }
-        }
-    };
-    
-    setInterval(() => {
-        if (syncManager.isConnected) {
-            syncManager.updateSyncStatus('Синхронизация активна', '🟢');
-        }
-    }, 30000);
+    window.addEventListener('online', () => syncManager.connectToExistingSync());
+    window.addEventListener('offline', () => syncManager.updateSyncStatus('Оффлайн режим', '🔴'));
+    window.addEventListener('beforeunload', () => {
+        if (syncManager.isConnected) syncManager.syncToRemote();
+    });
 }
-
-function handleConnectionError() {
-    syncManager.updateSyncStatus('Нет соединения', '🔴');
-    
-    setTimeout(() => {
-        if (syncManager.currentSyncCode && !syncManager.isConnected) {
-            syncManager.connectToExistingSync();
-        }
-    }, 30000);
-}
-
-window.addEventListener('online', () => {
-    if (syncManager.currentSyncCode && !syncManager.isConnected) {
-        syncManager.connectToExistingSync();
-    }
-});
-
-window.addEventListener('offline', () => {
-    syncManager.updateSyncStatus('Оффлайн режим', '🔴');
-});
-
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 6px;
-        color: white;
-        font-weight: 500;
-        z-index: 1000;
-        animation: slideIn 0.3s ease-out;
-    `;
-    
-    if (type === 'success') {
-        notification.style.backgroundColor = '#10b981';
-    } else if (type === 'error') {
-        notification.style.backgroundColor = '#ef4444';
-    } else {
-        notification.style.backgroundColor = '#3b82f6';
-    }
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-in';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 3000);
-}
-
-const notificationStyles = document.createElement('style');
-notificationStyles.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(notificationStyles);
-
-const originalSyncToRemote = syncManager.syncToRemote;
-syncManager.syncToRemote = async function() {
-    try {
-        await originalSyncToRemote.call(this);
-        if (this.lastSyncStatus === 'error') {
-            showNotification('Синхронизация восстановлена', 'success');
-        }
-        this.lastSyncStatus = 'success';
-    } catch (error) {
-        console.error('Ошибка синхронизации:', error);
-        this.updateSyncStatus('Ошибка синхронизации', '🔴');
-        this.lastSyncStatus = 'error';
-        showNotification('Ошибка синхронизации', 'error');
-    }
-};
-
-const originalConnectToSync = syncManager.connectToSync;
-syncManager.connectToSync = async function() {
-    try {
-        await originalConnectToSync.call(this);
-        showNotification('Подключено к синхронизации', 'success');
-    } catch (error) {
-        showNotification('Ошибка подключения', 'error');
-        throw error;
-    }
-};
 
 setupAutoSync();
-
-window.addEventListener('beforeunload', () => {
-    if (syncManager.isConnected) {
-        syncManager.syncToRemote();
-    }
-});
-
-function checkSyncStatus() {
-    if (syncManager.isConnected && syncManager.currentSyncCode) {
-        return {
-            connected: true,
-            code: syncManager.currentSyncCode,
-            lastSync: syncManager.lastSyncTime
-        };
-    }
-    return {
-        connected: false,
-        code: null,
-        lastSync: null
-    };
-}
-
-function getCardsReadyForReview() {
-    const now = new Date();
-    return fullDeck.filter(card => {
-        const nextReviewDate = new Date(card.nextReviewDate);
-        return nextReviewDate <= now;
-    });
-}
-
-function checkSessionCompletion() {
-    const readyCards = getCardsReadyForReview();
-    
-    if (readyCards.length === 0 && sessionQueue.length === 0) {
-        endSession();
-        return true;
-    }
-    return false;
-}
-
-function debugShowNextReviewTimes() {
-    console.log('Время следующего повторения для каждого слова:');
-    fullDeck.forEach((card, index) => {
-        const nextReview = new Date(card.nextReviewDate);
-        const now = new Date();
-        const diffMinutes = Math.round((nextReview - now) / (1000 * 60));
-        
-        console.log(`${index + 1}. ${card.german} - через ${diffMinutes} минут (${nextReview.toLocaleString()})`);
-    });
-}
-
-window.debugReviewTimes = debugShowNextReviewTimes;
-window.syncStatus = checkSyncStatus;
-
-console.log('WordLab синхронизация инициализирована');
-console.log('Для проверки статуса используйте: window.syncStatus()');

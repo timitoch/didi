@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-app-compat.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.0/firebase-database-compat.min.js"></script>
-    <link rel="stylesheet" href="style.css"> 
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -142,7 +142,20 @@
             </div>
         </div>
 
-        <div id="card-container" class="card-container"></div>
+        <div id="card-container" class="card-container">
+            <div class="card-inner" id="card-inner">
+                <div class="card-face card-front">
+                    <div class="german-word-container">
+                        <div class="german-word" id="card-german-word"></div>
+                    </div>
+                    <div id="card-additional-info"></div>
+                    <div id="card-examples"></div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="translation" id="card-translation"></div>
+                </div>
+            </div>
+        </div>
         
         <div class="rating-buttons" id="rating-container">
             <button class="rating-btn rating-btn-1" data-rating="1">Не помню<br><small>5 минут</small></button>
