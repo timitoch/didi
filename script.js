@@ -950,15 +950,23 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleExamplesSpeechButton.disabled = true;
     toggleExamplesSpeechButton.addEventListener('click', () => {
         speakExamplesEnabled = !speakExamplesEnabled;
-        toggleExamplesSpeechButton.innerHTML = speakExamplesEnabled ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open" style="fill: #10b981;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>';
-        toggleExamplesSpeechButton.title = speakExamplesEnabled ? 'Выключить озвучивание примеров' : 'Включить озвучивание примеров';
         
-        // Если переключили на "включено", то сразу озвучиваем текущую карточку с примерами
+        // Изменяем иконку в зависимости от состояния speakExamplesEnabled
+        if (speakExamplesEnabled) {
+            // Если включено - иконка "открытая книга" или "проигрывание"
+            toggleExamplesSpeechButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-play"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>'; // Пример иконки "громкость 1"
+            toggleExamplesSpeechButton.title = 'Выключить озвучивание примеров';
+        } else {
+            // Если выключено - иконка "книга" или "пауза"
+            toggleExamplesSpeechButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>'; // Иконка "книга"
+            toggleExamplesSpeechButton.title = 'Включить озвучивание примеров';
+        }
+
         if (speakExamplesEnabled && speechEnabled && currentCard) {
             speakCurrentCard();
         }
-    });
-}
+        });
+    }
 });
 
 
