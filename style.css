@@ -190,27 +190,35 @@
         }
 
         .file-input-button {
-            background: var(--primary-color);
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            text-align: center;
-            margin-top: 12px;
-            transition: all 0.15s ease;
-            display: flex; /* Для иконки и текста */
-            align-items: center;
-            justify-content: center;
-            gap: 8px; /* Расстояние между иконкой и текстом */
-            width: 100%; /* Растянуто на 100% */
-        }
+    background: #e0f2fe;
+    border: 1px solid #0ea5e9;
+    color: #0369a1;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    margin-top: 12px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 52px;
+}
 
-        .file-input-button:hover {
-            background: var(--primary-light);
-        }
+.file-input-button:hover {
+    background: #bae6fd;
+    border-color: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.file-input-button:active {
+    transform: translateY(0);
+}
 
         #file-input {
             display: none;
@@ -563,34 +571,45 @@
         }
 
         .sync-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            background: var(--primary-color);
-            color: white;
-            font-weight: 500;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.15s ease;
-            display: flex; /* Для иконки и текста */
-            align-items: center;
-            gap: 6px; /* Расстояние между иконкой и текстом */
-        }
+    padding: 14px 16px;
+    border: 1px solid #10b981;
+    border-radius: 12px;
+    background: #ecfdf5;
+    color: #047857;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 20px;
+}
 
-        .sync-btn:hover {
-            background: var(--primary-light);
-        }
+.sync-btn:hover {
+    background: #d1fae5;
+    border-color: #047857;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
 
-        .sync-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+.sync-btn:active {
+    transform: translateY(0);
+}
 
-        .sync-btn svg {
-            width: 16px; /* Меньший размер для иконок в кнопках */
-            height: 16px;
-            stroke-width: 2;
-        }
+.sync-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.sync-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+}
 
         .sync-code-display {
             margin-top: 12px;
@@ -618,19 +637,27 @@
         .sync-input-container {
             margin-top: 12px;
             display: flex;
-            gap: 8px;
-            align-items: center;
+            flex-direction: column;
+            gap: 12px;
         }
 
+        .sync-input-buttons {
+    display: flex;
+    gap: 8px;
+}
+
         #sync-code-input {
-            flex: 1;
-            padding: 8px;
+            width: 100%;
+            padding: 14px 12px;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: 12px;
             background: var(--card-bg);
             color: var(--text-primary);
             font-family: monospace;
             font-size: 14px;
+            font-weight: 500;
+            min-height: 52px;
+            box-sizing: border-box;
         }
 
         #sync-code-input:focus {
@@ -681,20 +708,31 @@
         }
 
         .check-again-btn {
-            background: var(--primary-color);
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
+    background: #dbeafe;
+    border: 1px solid #3b82f6;
+    color: #1e40af;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-        .check-again-btn:hover {
-            background: var(--primary-light);
-        }
+.check-again-btn:hover {
+    background: #bfdbfe;
+    border-color: #1e40af;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.check-again-btn:active {
+    transform: translateY(0);
+}
 
         /* Уведомления */
         .notification {
