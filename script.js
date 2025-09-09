@@ -27,7 +27,7 @@ const doneCountEl = document.getElementById('done-count');
 const masteredNumberEl = document.getElementById('mastered-number');
 const uploadArea = document.getElementById('upload-area');
 const resetButton = document.getElementById('reset-progress-btn');
-const progressBar = document.getElementById('progress-bar'); // ►►► НОВАЯ ССЫЛКА НА ЭЛЕМЕНТ
+const progressBar = document.getElementById('progress-bar'); 
 
 // Sync UI Elements
 const createSyncBtn = document.getElementById('create-sync-btn');
@@ -61,7 +61,6 @@ class SyncManager {
         this.lastSyncTime = 0;
         this.syncDebounceTimer = null;
 
-        // SVG Icons for sync statuses
         this.icons = {
             success: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-8.8"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
             error: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-triangle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
@@ -330,12 +329,11 @@ class SyncManager {
                 console.error('Ошибка синхронизации:', error);
                 this.updateSyncStatus('Ошибка синхронизации', this.icons.error);
             }
-        }, 1000); // Debounce Firebase writes
+        }, 1000); 
     }
 }
 
 const syncManager = new SyncManager();
-// Set initial disconnected status on load
 syncManager.updateSyncStatus('Синхронизация отключена', syncManager.icons.disconnected);
 
 
@@ -434,8 +432,6 @@ backBtn.addEventListener('click', () => {
         window.sessionStats.done = updatedStats.done;
     }
     
-    window.sessionStats.due = Math.max(0, window.sessionStats.due + 1);
-    
     if (lastCardState.rating >= 5) {
         const masteredWords = JSON.parse(localStorage.getItem(MASTERED_KEY) || '{}');
         if (masteredWords[lastCardState.cardId]) {
@@ -459,7 +455,7 @@ backBtn.addEventListener('click', () => {
 });
 
 window.addEventListener('load', loadProgress);
-cardInner.addEventListener('click', flipCard); // Attach flip listener once
+cardInner.addEventListener('click', flipCard); 
 
 function handleFile(file) {
     if (!file || !file.name.match(/\.(xlsx|xls)$/i)) {
@@ -560,7 +556,7 @@ function saveProgress() {
             localStorage.setItem(DECK_KEY, JSON.stringify(fullDeck));
             syncManager.syncToRemote();
         }
-    }, 1500); // Debounce saving to avoid excessive writes
+    }, 1500);
 }
 
 function loadProgress() {
@@ -608,7 +604,6 @@ function startSession() {
     
     window.sessionStats = {
         new: fullDeck.length,
-        due: dueCards.length,
         done: getTodayStats().done
     };
     
@@ -622,28 +617,32 @@ function startSession() {
     }
 }
 
-// ►►► НОВАЯ ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ ПРОГРЕСС-БАРА
 function updateProgressBar() {
-    if (!window.sessionStats || window.sessionStats.new === 0) {
+    const totalWords = fullDeck.length;
+    if (totalWords === 0) {
         progressBar.style.width = '0%';
         return;
     }
-    const totalWords = window.sessionStats.new;
-    const studiedToday = window.sessionStats.done;
-    const percentage = (studiedToday / totalWords) * 100;
+    const masteredCount = parseInt(masteredNumberEl.textContent, 10) || 0;
+    const percentage = (masteredCount / totalWords) * 100;
     progressBar.style.width = `${Math.min(percentage, 100)}%`;
 }
 
-
 function updateStatsUI() {
-    newCountEl.textContent = window.sessionStats.new;
-    dueCountEl.textContent = window.sessionStats.due;
+    // Эта функция теперь обновляет все счетчики, включая "к повторению"
+    const now = new Date();
+    const dueCount = fullDeck.filter(card => new Date(card.nextReviewDate) <= now).length;
+    
+    newCountEl.textContent = fullDeck.length;
+    dueCountEl.textContent = dueCount;
     doneCountEl.textContent = window.sessionStats.done;
-    updateProgressBar(); // ►►► ВЫЗЫВАЕМ ОБНОВЛЕНИЕ ПРОГРЕСС-БАРА
+
+    updateProgressBar();
 }
 
 function nextCard() {
     if (sessionQueue.length === 0) {
+        // Проверяем, не появились ли новые карточки для повторения, пока шла сессия
         const readyCards = fullDeck.filter(card => new Date(card.nextReviewDate) <= new Date());
         if (readyCards.length > 0) {
             sessionQueue = readyCards.sort(() => Math.random() - 0.5);
@@ -810,8 +809,6 @@ function handleRating(event) {
         window.sessionStats.done = updateTodayStats(1).done;
     }
     
-    window.sessionStats.due = Math.max(0, window.sessionStats.due - 1);
-
     updateStatsUI();
     saveProgress();
     
@@ -880,6 +877,7 @@ function updateMasteredCount() {
     }
     
     masteredNumberEl.textContent = activeMastered.length;
+    updateProgressBar(); // Обновляем прогресс-бар каждый раз, когда меняется число освоенных слов
 }
 
 function endSession() {
